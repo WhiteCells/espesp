@@ -15,5 +15,5 @@
     "--query-driver=**",
     "--compile-commands-dir=/home/cells/dev/espesp/case2/build"
   ],
-  "idf.flashType": "JTAG"
+  "idf.flashType": "UART"
 }
