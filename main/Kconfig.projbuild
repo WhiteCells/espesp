@@ -1,0 +1,196 @@
+menu "Case2 ESP Learning"
+
+choice CASE2_SELECTED_DEMO
+    prompt "Demo selector"
+    default CASE2_DEMO_SYSTEM_INFO
+    help
+        Select one demo to run after boot. This project is designed for single-demo
+        learning: switch here, rebuild, flash, and watch serial logs.
+
+config CASE2_DEMO_SYSTEM_INFO
+    bool "01 system_info: chip/app/heap information"
+
+config CASE2_DEMO_FREERTOS_TASKS
+    bool "02 freertos_tasks: tasks and queue"
+
+config CASE2_DEMO_GPIO_BLINK
+    bool "03 gpio_blink: GPIO output blink"
+
+config CASE2_DEMO_NVS_COUNTER
+    bool "04 nvs_counter: persistent boot counter"
+
+config CASE2_DEMO_WIFI_STA
+    bool "05 wifi_sta: connect to Wi-Fi"
+
+config CASE2_DEMO_HTTP_GET
+    bool "06 http_get: Wi-Fi + HTTP GET"
+
+config CASE2_DEMO_ADC_ONESHOT
+    bool "07 adc_oneshot: read ADC1 channel"
+
+config CASE2_DEMO_UART_ECHO
+    bool "08 uart_echo: UART read/write"
+
+config CASE2_DEMO_I2C_SCAN
+    bool "09 i2c_scan: scan I2C addresses"
+
+endchoice
+
+menu "FreeRTOS task demo"
+
+config CASE2_FREERTOS_QUEUE_LENGTH
+    int "Queue length"
+    range 1 32
+    default 5
+
+config CASE2_FREERTOS_PRODUCER_PERIOD_MS
+    int "Producer period in ms"
+    range 50 10000
+    default 1000
+
+endmenu
+
+menu "GPIO blink demo"
+
+config CASE2_BLINK_GPIO
+    int "Blink GPIO number"
+    range 0 48 if IDF_TARGET_ESP32S3
+    range 0 39
+    default 2
+    help
+        Set this to the LED GPIO of your board. Many ESP32 boards use GPIO2,
+        while some ESP32-S3 boards use GPIO48 or another board-specific pin.
+
+config CASE2_BLINK_PERIOD_MS
+    int "Blink period in ms"
+    range 50 10000
+    default 500
+
+endmenu
+
+menu "NVS demo"
+
+config CASE2_NVS_NOTE
+    string "Note"
+    default "Run this demo, reset the board, and watch boot_count increase."
+    help
+        This text is only here to make the menu self-documenting.
+
+endmenu
+
+menu "WiFi"
+
+config CASE2_WIFI_SSID
+    string "WiFi SSID"
+    default ""
+    help
+        The WiFi network name used by the station and HTTP demos.
+
+config CASE2_WIFI_PASSWORD
+    string "WiFi password"
+    default ""
+    help
+        The WiFi password. Leave it empty only for an open network.
+
+config CASE2_WIFI_MAXIMUM_RETRY
+    int "Maximum WiFi retries"
+    range 1 20
+    default 5
+    help
+        Maximum reconnect attempts before wifi_sta_connect returns ESP_FAIL.
+
+endmenu
+
+menu "HTTP client demo"
+
+config CASE2_HTTP_URL
+    string "HTTP GET URL"
+    default "http://httpbin.org/get"
+    help
+        Use http:// for the first networking lesson. HTTPS requires certificate
+        handling, which is a later topic.
+
+config CASE2_HTTP_TIMEOUT_MS
+    int "HTTP timeout in ms"
+    range 1000 30000
+    default 5000
+
+config CASE2_HTTP_PRINT_LIMIT
+    int "Maximum response bytes printed"
+    range 0 4096
+    default 512
+
+endmenu
+
+menu "ADC oneshot demo"
+
+config CASE2_ADC_CHANNEL
+    int "ADC1 channel"
+    range 0 9 if IDF_TARGET_ESP32S3
+    range 0 10
+    default 2
+    help
+        This is an ADC channel number, not a GPIO number. On ESP32-S3,
+        ADC1 channel 2 maps to GPIO3.
+
+config CASE2_ADC_PERIOD_MS
+    int "ADC read period in ms"
+    range 100 10000
+    default 1000
+
+endmenu
+
+menu "UART echo demo"
+
+config CASE2_UART_PORT_NUM
+    int "UART port number"
+    range 0 2
+    default 1
+
+config CASE2_UART_BAUD_RATE
+    int "UART baud rate"
+    range 1200 2000000
+    default 115200
+
+config CASE2_UART_USE_CUSTOM_PINS
+    bool "Use custom TX/RX GPIO pins"
+    default y
+
+config CASE2_UART_TX_GPIO
+    int "UART TX GPIO"
+    depends on CASE2_UART_USE_CUSTOM_PINS
+    range 0 48 if IDF_TARGET_ESP32S3
+    range 0 39
+    default 17
+
+config CASE2_UART_RX_GPIO
+    int "UART RX GPIO"
+    depends on CASE2_UART_USE_CUSTOM_PINS
+    range 0 48 if IDF_TARGET_ESP32S3
+    range 0 39
+    default 18
+
+endmenu
+
+menu "I2C scan demo"
+
+config CASE2_I2C_SDA_GPIO
+    int "I2C SDA GPIO"
+    range 0 48 if IDF_TARGET_ESP32S3
+    range 0 39
+    default 8
+
+config CASE2_I2C_SCL_GPIO
+    int "I2C SCL GPIO"
+    range 0 48 if IDF_TARGET_ESP32S3
+    range 0 39
+    default 9
+
+config CASE2_I2C_PROBE_TIMEOUT_MS
+    int "Probe timeout in ms"
+    range 1 1000
+    default 50
+
+endmenu
+
+endmenu
