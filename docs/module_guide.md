@@ -35,6 +35,14 @@ Case2 ESP Learning
   -> WiFi
 ```
 
+HTTP 和 MQTT：
+
+```text
+Case2 ESP Learning
+  -> HTTP client module
+  -> MQTT client module
+```
+
 ADC：
 
 ```text

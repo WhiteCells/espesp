@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "core/app_common.h"
 #include "registry/app_registry.h"
 #include "esp_err.h"
@@ -9,9 +7,6 @@ static const char *TAG = "app_main";
 
 void app_main(void)
 {
-    /* Keep the template smoke-test line so existing host checks still pass. */
-    printf("Hello world!\n");
-
     const app_case_t *selected_case = app_registry_selected();
     app_common_print_banner(selected_case);
 

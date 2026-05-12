@@ -8,6 +8,7 @@
 #include "i2c_scan/i2c_scan.h"
 #include "led/led_blink.h"
 #include "microphone/microphone.h"
+#include "mqtt_client_demo/mqtt_client_demo.h"
 #include "nvs_counter/nvs_counter.h"
 #include "rtos_tasks/rtos_tasks.h"
 #include "speaker/speaker.h"
@@ -113,6 +114,14 @@ static const app_case_t s_cases[] = {
         .needs_wifi = false,
         .runs_forever = false,
     },
+    {
+        .key = "mqtt_client",
+        .title = "MQTT 发布订阅",
+        .doc_path = "docs/modules/13_mqtt_client.md",
+        .run = mqtt_client_demo_run,
+        .needs_wifi = true,
+        .runs_forever = true,
+    },
 };
 
 const app_case_t *app_registry_all(size_t *count)
@@ -150,6 +159,8 @@ const app_case_t *app_registry_selected(void)
     return &s_cases[10];
 #elif CONFIG_CASE2_MODULE_DISPLAY
     return &s_cases[11];
+#elif CONFIG_CASE2_MODULE_MQTT_CLIENT
+    return &s_cases[12];
 #else
     return &s_cases[0];
 #endif

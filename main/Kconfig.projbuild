@@ -44,6 +44,9 @@ config CASE2_MODULE_SPEAKER
 config CASE2_MODULE_DISPLAY
     bool "display: write SSD1306 OLED pattern"
 
+config CASE2_MODULE_MQTT_CLIENT
+    bool "mqtt_client: Wi-Fi + MQTT publish/subscribe"
+
 endchoice
 
 menu "FreeRTOS task module"
@@ -129,6 +132,44 @@ config CASE2_HTTP_PRINT_LIMIT
     int "Maximum response bytes printed"
     range 0 4096
     default 512
+
+endmenu
+
+menu "MQTT client module"
+
+config CASE2_MQTT_BROKER_URI
+    string "MQTT broker URI"
+    default "mqtt://192.168.1.23:1883"
+    help
+        Use your computer's LAN IP when testing with server/mqtt_broker/.
+        Do not use 127.0.0.1 from the ESP32.
+
+config CASE2_MQTT_CLIENT_ID
+    string "MQTT client ID"
+    default "case2-esp32"
+
+config CASE2_MQTT_STATUS_TOPIC
+    string "Status publish topic"
+    default "case2/device/status"
+
+config CASE2_MQTT_CMD_TOPIC
+    string "Command subscribe topic"
+    default "case2/device/cmd"
+
+config CASE2_MQTT_PUBLISH_PERIOD_MS
+    int "Status publish period in ms"
+    range 1000 600000
+    default 5000
+
+config CASE2_MQTT_CONNECT_TIMEOUT_MS
+    int "Connect timeout in ms"
+    range 1000 60000
+    default 10000
+
+config CASE2_MQTT_KEEPALIVE_SEC
+    int "MQTT keepalive in seconds"
+    range 5 300
+    default 60
 
 endmenu
 

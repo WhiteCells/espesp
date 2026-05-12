@@ -93,3 +93,13 @@ client API，等流程熟悉后再扩展 HTTPS 证书。
 
 - `http_get`
 - 源码：`main/http_client/http_get.c`
+
+## 8. MQTT Client
+
+MQTT 模块训练长连接、发布订阅和设备状态同步。它比 HTTP 更适合设备状态、
+远程控制、遥测和后续对话机器人的状态流。
+
+对应模块：
+
+- `mqtt_client`
+- 源码：`main/mqtt_client_demo/mqtt_client_demo.c`

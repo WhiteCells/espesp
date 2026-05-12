@@ -55,9 +55,13 @@ def echo():
     return jsonify(method=request.method, path=request.path, args=request.args.to_dict())
 
 
-if __name__ == "__main__":
+def main() -> None:
     host = os.environ.get("HOST", "0.0.0.0")
     port = int(os.environ.get("PORT", "8000"))
 
     print(f"HTTP server listening on http://{host}:{port}")
     app.run(host=host, port=port, debug=False)
+
+
+if __name__ == "__main__":
+    main()

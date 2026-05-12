@@ -1,6 +1,6 @@
 idf_component_register(
     SRCS
-        "hello_world_main.c"
+        "main.c"
         "core/app_common.c"
         "registry/app_registry.c"
         "system_info/system_info.c"
@@ -9,6 +9,7 @@ idf_component_register(
         "nvs_counter/nvs_counter.c"
         "wifi_station/wifi_station.c"
         "http_client/http_get.c"
+        "mqtt_client_demo/mqtt_client_demo.c"
         "adc_reader/adc_reader.c"
         "uart_echo/uart_echo.c"
         "i2c_scan/i2c_scan.c"
@@ -25,6 +26,7 @@ idf_component_register(
         esp_event
         esp_http_client
         esp_hw_support
+        mqtt
         esp_netif
         esp_system
         esp_wifi

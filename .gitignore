@@ -1,4 +1,5 @@
 server/__pycache__/
 server/.venv/
 build/
+managed_components/
 sdkconfig.old

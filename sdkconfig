@@ -923,6 +923,7 @@ CONFIG_CASE2_MODULE_SYSTEM_INFO=y
 # CONFIG_CASE2_MODULE_MICROPHONE is not set
 # CONFIG_CASE2_MODULE_SPEAKER is not set
 # CONFIG_CASE2_MODULE_DISPLAY is not set
+# CONFIG_CASE2_MODULE_MQTT_CLIENT is not set
 
 #
 # FreeRTOS task module
@@ -959,6 +960,25 @@ CONFIG_CASE2_HTTP_URL="http://httpbin.org/get"
 CONFIG_CASE2_HTTP_TIMEOUT_MS=5000
 CONFIG_CASE2_HTTP_PRINT_LIMIT=512
 # end of HTTP client module
+
+#
+# MQTT client module
+#
+# default:
+CONFIG_CASE2_MQTT_BROKER_URI="mqtt://192.168.1.23:1883"
+# default:
+CONFIG_CASE2_MQTT_CLIENT_ID="case2-esp32"
+# default:
+CONFIG_CASE2_MQTT_STATUS_TOPIC="case2/device/status"
+# default:
+CONFIG_CASE2_MQTT_CMD_TOPIC="case2/device/cmd"
+# default:
+CONFIG_CASE2_MQTT_PUBLISH_PERIOD_MS=5000
+# default:
+CONFIG_CASE2_MQTT_CONNECT_TIMEOUT_MS=10000
+# default:
+CONFIG_CASE2_MQTT_KEEPALIVE_SEC=60
+# end of MQTT client module
 
 #
 # ADC reader module
@@ -2447,6 +2467,33 @@ CONFIG_VFS_SEMIHOSTFS_MAX_MOUNT_POINTS=1
 
 CONFIG_VFS_INITIALIZE_DEV_NULL=y
 # end of Virtual file system
+
+#
+# ESP-MQTT Configurations
+#
+# default:
+CONFIG_MQTT_PROTOCOL_311=y
+# default:
+# CONFIG_MQTT_PROTOCOL_5 is not set
+# default:
+CONFIG_MQTT_TRANSPORT_SSL=y
+# default:
+CONFIG_MQTT_TRANSPORT_WEBSOCKET=y
+# default:
+CONFIG_MQTT_TRANSPORT_WEBSOCKET_SECURE=y
+# default:
+# CONFIG_MQTT_MSG_ID_INCREMENTAL is not set
+# default:
+# CONFIG_MQTT_SKIP_PUBLISH_IF_DISCONNECTED is not set
+# default:
+# CONFIG_MQTT_REPORT_DELETED_MESSAGES is not set
+# default:
+# CONFIG_MQTT_USE_CUSTOM_CONFIG is not set
+# default:
+# CONFIG_MQTT_TASK_CORE_SELECTION_ENABLED is not set
+# default:
+# CONFIG_MQTT_CUSTOM_OUTBOX is not set
+# end of ESP-MQTT Configurations
 # end of Component config
 
 # CONFIG_IDF_EXPERIMENTAL_FEATURES is not set

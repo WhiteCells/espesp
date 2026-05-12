@@ -28,6 +28,7 @@ Wi-Fi、HTTP、麦克风、扬声器、显示屏等模块还需要在对应菜�
 | 10 | `microphone` | I2S RX、麦克风采样、音频帧幅度统计 | `main/microphone/microphone.c` |
 | 11 | `speaker` | I2S TX、数字功放、正弦波输出 | `main/speaker/speaker.c` |
 | 12 | `display` | I2C OLED、SSD1306 初始化、图案写入 | `main/display/display.c` |
+| 13 | `mqtt_client` | Wi-Fi 后连接 MQTT、发布状态、订阅命令 | `main/mqtt_client_demo/mqtt_client_demo.c` |
 
 ## 文档入口
 
@@ -50,6 +51,7 @@ main/
   nvs_counter/
   wifi_station/
   http_client/
+  mqtt_client_demo/
   adc_reader/
   uart_echo/
   i2c_scan/
