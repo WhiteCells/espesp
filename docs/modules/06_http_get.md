@@ -13,7 +13,7 @@
 ```text
 idf.py menuconfig
   -> Case2 ESP Learning
-  -> Demo selector
+  -> Module selector
   -> 06 http_get
 ```
 
@@ -23,17 +23,27 @@ idf.py menuconfig
 Case2 ESP Learning
   -> WiFi
 Case2 ESP Learning
-  -> HTTP client demo
+  -> HTTP client module
 ```
 
 ## 看哪段代码
 
-- `main/demos/http_get_demo.c`
-- Wi-Fi 复用：`main/wifi_sta.c`
+- `main/http_client/http_get.c`
+- Wi-Fi 复用：`main/wifi_station/wifi_station.c`
+
+## 接口介绍
+
+- `http_get_run()`：连接 Wi-Fi 后执行一次 GET。
+- 常用接口：`esp_http_client_init()`、`esp_http_client_perform()`、`esp_http_client_cleanup()`。
 
 ## 日志现象
 
 成功时会看到 HTTP header、响应前若干字节、status code 和 content length。
+
+## 注意事项
+
+- 默认使用 HTTP 明文地址，HTTPS 需要证书配置。
+- 响应体可能分段到达，不要假设一次回调就是完整 body。
 
 ## 练习
 

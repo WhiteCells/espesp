@@ -909,79 +909,111 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
-# Case2 ESP Learning
+# ESPESP Menu
 #
-# CONFIG_CASE2_DEMO_SYSTEM_INFO is not set
-# CONFIG_CASE2_DEMO_FREERTOS_TASKS is not set
-# CONFIG_CASE2_DEMO_GPIO_BLINK is not set
-# CONFIG_CASE2_DEMO_NVS_COUNTER is not set
-# CONFIG_CASE2_DEMO_WIFI_STA is not set
-# CONFIG_CASE2_DEMO_HTTP_GET is not set
-CONFIG_CASE2_DEMO_ADC_ONESHOT=y
-# CONFIG_CASE2_DEMO_UART_ECHO is not set
-# CONFIG_CASE2_DEMO_I2C_SCAN is not set
+CONFIG_CASE2_MODULE_SYSTEM_INFO=y
+# CONFIG_CASE2_MODULE_RTOS_TASKS is not set
+# CONFIG_CASE2_MODULE_LED_BLINK is not set
+# CONFIG_CASE2_MODULE_NVS_COUNTER is not set
+# CONFIG_CASE2_MODULE_WIFI_STATION is not set
+# CONFIG_CASE2_MODULE_HTTP_GET is not set
+# CONFIG_CASE2_MODULE_ADC_READER is not set
+# CONFIG_CASE2_MODULE_UART_ECHO is not set
+# CONFIG_CASE2_MODULE_I2C_SCAN is not set
+# CONFIG_CASE2_MODULE_MICROPHONE is not set
+# CONFIG_CASE2_MODULE_SPEAKER is not set
+# CONFIG_CASE2_MODULE_DISPLAY is not set
 
 #
-# FreeRTOS task demo
+# FreeRTOS task module
 #
 CONFIG_CASE2_FREERTOS_QUEUE_LENGTH=5
 CONFIG_CASE2_FREERTOS_PRODUCER_PERIOD_MS=1000
-# end of FreeRTOS task demo
+# end of FreeRTOS task module
 
 #
-# GPIO blink demo
+# LED module
 #
-CONFIG_CASE2_BLINK_GPIO=2
-CONFIG_CASE2_BLINK_PERIOD_MS=500
-# end of GPIO blink demo
+CONFIG_CASE2_LED_GPIO=2
+CONFIG_CASE2_LED_PERIOD_MS=500
+# end of LED module
 
 #
-# NVS demo
+# NVS module
 #
-CONFIG_CASE2_NVS_NOTE="Run this demo, reset the board, and watch boot_count increase."
-# end of NVS demo
+CONFIG_CASE2_NVS_NOTE="Run this module, reset the board, and watch boot_count increase."
+# end of NVS module
 
 #
-# WiFi
+# WiFi module
 #
 CONFIG_CASE2_WIFI_SSID="GT"
 CONFIG_CASE2_WIFI_PASSWORD="aaa12345"
 CONFIG_CASE2_WIFI_MAXIMUM_RETRY=5
-# end of WiFi
+# end of WiFi module
 
 #
-# HTTP client demo
+# HTTP client module
 #
 CONFIG_CASE2_HTTP_URL="http://httpbin.org/get"
 CONFIG_CASE2_HTTP_TIMEOUT_MS=5000
 CONFIG_CASE2_HTTP_PRINT_LIMIT=512
-# end of HTTP client demo
+# end of HTTP client module
 
 #
-# ADC oneshot demo
+# ADC reader module
 #
 CONFIG_CASE2_ADC_CHANNEL=2
 CONFIG_CASE2_ADC_PERIOD_MS=1000
-# end of ADC oneshot demo
+# end of ADC reader module
 
 #
-# UART echo demo
+# UART echo module
 #
 CONFIG_CASE2_UART_PORT_NUM=1
 CONFIG_CASE2_UART_BAUD_RATE=115200
 CONFIG_CASE2_UART_USE_CUSTOM_PINS=y
 CONFIG_CASE2_UART_TX_GPIO=17
 CONFIG_CASE2_UART_RX_GPIO=18
-# end of UART echo demo
+# end of UART echo module
 
 #
-# I2C scan demo
+# I2C scan module
 #
 CONFIG_CASE2_I2C_SDA_GPIO=8
 CONFIG_CASE2_I2C_SCL_GPIO=9
 CONFIG_CASE2_I2C_PROBE_TIMEOUT_MS=50
-# end of I2C scan demo
-# end of Case2 ESP Learning
+# end of I2C scan module
+
+#
+# Microphone module
+#
+CONFIG_CASE2_MIC_BCLK_GPIO=4
+CONFIG_CASE2_MIC_WS_GPIO=5
+CONFIG_CASE2_MIC_DIN_GPIO=6
+CONFIG_CASE2_MIC_SAMPLE_RATE_HZ=16000
+# end of Microphone module
+
+#
+# Speaker module
+#
+CONFIG_CASE2_SPK_BCLK_GPIO=10
+CONFIG_CASE2_SPK_WS_GPIO=11
+CONFIG_CASE2_SPK_DOUT_GPIO=12
+CONFIG_CASE2_SPK_SAMPLE_RATE_HZ=16000
+CONFIG_CASE2_SPK_TONE_HZ=440
+# end of Speaker module
+
+#
+# Display module
+#
+CONFIG_CASE2_DISPLAY_SDA_GPIO=8
+CONFIG_CASE2_DISPLAY_SCL_GPIO=9
+CONFIG_CASE2_DISPLAY_I2C_ADDR=0x3C
+CONFIG_CASE2_DISPLAY_I2C_HZ=400000
+CONFIG_CASE2_DISPLAY_TIMEOUT_MS=100
+# end of Display module
+# end of ESPESP Menu
 
 #
 # Compiler options
@@ -1119,6 +1151,15 @@ CONFIG_GDMA_OBJ_DRAM_SAFE=y
 # CONFIG_I2C_ENABLE_DEBUG_LOG is not set
 CONFIG_I2C_MASTER_ISR_HANDLER_IN_IRAM=y
 # end of ESP-Driver:I2C Configurations
+
+#
+# ESP-Driver:I2S Configurations
+#
+# CONFIG_I2S_ISR_IRAM_SAFE is not set
+# default:
+# CONFIG_I2S_CTRL_FUNC_IN_IRAM is not set
+# CONFIG_I2S_ENABLE_DEBUG_LOG is not set
+# end of ESP-Driver:I2S Configurations
 
 #
 # ESP-Driver:UART Configurations

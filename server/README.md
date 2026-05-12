@@ -1,6 +1,6 @@
 # Python HTTP GET Server
 
-This is a tiny HTTP server for testing the ESP-IDF HTTP GET demo.
+This is a tiny HTTP server for testing the ESP-IDF HTTP GET module.
 
 ## Run
 

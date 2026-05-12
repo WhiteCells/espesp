@@ -13,7 +13,7 @@
 ```text
 idf.py menuconfig
   -> Case2 ESP Learning
-  -> Demo selector
+  -> Module selector
   -> 04 nvs_counter
 ```
 
@@ -21,13 +21,23 @@ idf.py menuconfig
 
 ## 看哪段代码
 
-- `main/demos/nvs_counter_demo.c`
-- NVS 公共初始化：`main/demos/demo_common.c`
+- `main/nvs_counter/nvs_counter.c`
+- NVS 公共初始化：`main/core/app_common.c`
+
+## 接口介绍
+
+- `nvs_counter_run()`：读取并递增 `boot_count`。
+- 常用接口：`nvs_open()`、`nvs_get_u32()`、`nvs_set_u32()`、`nvs_commit()`。
 
 ## 日志现象
 
 每重启一次，`boot_count` 增加 1。重新烧录 app 通常不会擦除 NVS；
 如果执行整片擦除，计数会从头开始。
+
+## 注意事项
+
+- NVS 适合少量键值配置，不适合高频大数据写入。
+- 写入后必须 commit。
 
 ## 练习
 

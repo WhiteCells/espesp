@@ -12,7 +12,7 @@
 ```text
 idf.py menuconfig
   -> Case2 ESP Learning
-  -> Demo selector
+  -> Module selector
   -> 09 i2c_scan
 ```
 
@@ -20,12 +20,17 @@ idf.py menuconfig
 
 ```text
 Case2 ESP Learning
-  -> I2C scan demo
+  -> I2C scan module
 ```
 
 ## 看哪段代码
 
-- `main/demos/i2c_scan_demo.c`
+- `main/i2c_scan/i2c_scan.c`
+
+## 接口介绍
+
+- `i2c_scan_run()`：扫描总线上的 7-bit 地址。
+- 常用接口：`i2c_new_master_bus()`、`i2c_master_probe()`、`i2c_del_master_bus()`。
 
 ## 接线
 
@@ -43,6 +48,11 @@ Case2 ESP Learning
 ```text
 found device at 0x3c
 ```
+
+## 注意事项
+
+- 扫到地址只代表 ACK，不代表设备寄存器协议正确。
+- 长线或高速 I2C 更需要外部上拉。
 
 ## 练习
 

@@ -26,7 +26,7 @@ def health():
 
 @app.get("/esp")
 def esp_text():
-    # Plain text is convenient for esp_http_client body logging demos.
+    # Plain text is convenient for esp_http_client body logging modules.
     return Response(
         "ESP HTTP GET OK\n"
         f"server_time_ms={int(time.time() * 1000)}\n"

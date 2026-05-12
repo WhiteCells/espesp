@@ -13,7 +13,7 @@
 ```text
 idf.py menuconfig
   -> Case2 ESP Learning
-  -> Demo selector
+  -> Module selector
   -> 08 uart_echo
 ```
 
@@ -21,12 +21,17 @@ idf.py menuconfig
 
 ```text
 Case2 ESP Learning
-  -> UART echo demo
+  -> UART echo module
 ```
 
 ## 看哪段代码
 
-- `main/demos/uart_echo_demo.c`
+- `main/uart_echo/uart_echo.c`
+
+## 接口介绍
+
+- `uart_echo_run()`：读取 UART 数据并写回。
+- 常用接口：`uart_driver_install()`、`uart_read_bytes()`、`uart_write_bytes()`。
 
 ## 接线
 
@@ -35,6 +40,11 @@ Case2 ESP Learning
 - ESP TX GPIO17 -> USB-TTL RX
 - ESP RX GPIO18 -> USB-TTL TX
 - ESP GND -> USB-TTL GND
+
+## 注意事项
+
+- TX/RX 要交叉连接。
+- UART0 常用于日志，外设学习建议 UART1。
 
 ## 练习
 

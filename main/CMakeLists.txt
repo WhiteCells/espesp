@@ -1,22 +1,26 @@
 idf_component_register(
     SRCS
         "hello_world_main.c"
-        "wifi_sta.c"
-        "demos/demo_common.c"
-        "demos/demo_registry.c"
-        "demos/system_info_demo.c"
-        "demos/freertos_tasks_demo.c"
-        "demos/gpio_blink_demo.c"
-        "demos/nvs_counter_demo.c"
-        "demos/http_get_demo.c"
-        "demos/adc_oneshot_demo.c"
-        "demos/uart_echo_demo.c"
-        "demos/i2c_scan_demo.c"
+        "core/app_common.c"
+        "registry/app_registry.c"
+        "system_info/system_info.c"
+        "rtos_tasks/rtos_tasks.c"
+        "led/led_blink.c"
+        "nvs_counter/nvs_counter.c"
+        "wifi_station/wifi_station.c"
+        "http_client/http_get.c"
+        "adc_reader/adc_reader.c"
+        "uart_echo/uart_echo.c"
+        "i2c_scan/i2c_scan.c"
+        "microphone/microphone.c"
+        "speaker/speaker.c"
+        "display/display.c"
     PRIV_REQUIRES
         esp_adc
         esp_app_format
         esp_driver_gpio
         esp_driver_i2c
+        esp_driver_i2s
         esp_driver_uart
         esp_event
         esp_http_client
