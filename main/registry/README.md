@@ -1,10 +1,14 @@
 # registry
 
-## 模块接口
+## 使用方式
+
+`registry` 是模块注册表，不在 menuconfig 的模块选择器中单独运行。`app_main()` 通过它获取当前选择的模块并调用对应 `run()` 函数。
+
+## 当前模块已有接口
 
 ### `const app_case_t *app_registry_selected(void)`
 
-根据 `menuconfig -> Case2 ESP Learning -> Module selector` 的选择返回当前模块。
+根据 `menuconfig -> ESPESP Menu -> Module selector` 的选择返回当前模块。
 
 参数：无。
 
@@ -15,19 +19,19 @@
 
 依赖的配置宏：
 
-- `CONFIG_CASE2_MODULE_SYSTEM_INFO`
-- `CONFIG_CASE2_MODULE_RTOS_TASKS`
-- `CONFIG_CASE2_MODULE_LED_BLINK`
-- `CONFIG_CASE2_MODULE_NVS_COUNTER`
-- `CONFIG_CASE2_MODULE_WIFI_STATION`
-- `CONFIG_CASE2_MODULE_HTTP_GET`
-- `CONFIG_CASE2_MODULE_MQTT_CLIENT`
-- `CONFIG_CASE2_MODULE_ADC_READER`
-- `CONFIG_CASE2_MODULE_UART_ECHO`
-- `CONFIG_CASE2_MODULE_I2C_SCAN`
-- `CONFIG_CASE2_MODULE_MICROPHONE`
-- `CONFIG_CASE2_MODULE_SPEAKER`
-- `CONFIG_CASE2_MODULE_DISPLAY`
+- `CONFIG_ESPESP_MODULE_SYSTEM_INFO`
+- `CONFIG_ESPESP_MODULE_RTOS_TASKS`
+- `CONFIG_ESPESP_MODULE_LED_BLINK`
+- `CONFIG_ESPESP_MODULE_NVS_COUNTER`
+- `CONFIG_ESPESP_MODULE_WIFI_STATION`
+- `CONFIG_ESPESP_MODULE_HTTP_GET`
+- `CONFIG_ESPESP_MODULE_MQTT_CLIENT`
+- `CONFIG_ESPESP_MODULE_ADC_READER`
+- `CONFIG_ESPESP_MODULE_UART_ECHO`
+- `CONFIG_ESPESP_MODULE_I2C_SCAN`
+- `CONFIG_ESPESP_MODULE_MICROPHONE`
+- `CONFIG_ESPESP_MODULE_SPEAKER`
+- `CONFIG_ESPESP_MODULE_DISPLAY`
 
 ### `const app_case_t *app_registry_all(size_t *count)`
 
@@ -54,11 +58,18 @@
 - `needs_wifi`：是否需要联网。
 - `runs_forever`：是否常驻运行。
 
+## 常用接口说明
+
+- `app_registry_selected()`：`app_main()` 用它获取当前 menuconfig 选择的模块。
+- `app_registry_all()`：后续如果要做菜单打印、Web 管理页或 CLI 列表，可以用它枚举所有模块。
+- `app_case_t.run`：统一模块入口，所有可运行模块都应实现 `esp_err_t xxx_run(void)`。
+- `CONFIG_ESPESP_MODULE_*`：由 Kconfig choice 生成，保证一次只选择一个运行模块。
+
 ## 新增模块步骤
 
 1. 新建 `main/<module>/<module>.c`、`.h` 和 `README.md`。
 2. 在 `main/CMakeLists.txt` 添加源文件。
-3. 在 `main/Kconfig.projbuild` 添加 `CONFIG_CASE2_MODULE_<NAME>` 和参数项。
+3. 在 `main/Kconfig.projbuild` 添加 `CONFIG_ESPESP_MODULE_<NAME>` 和参数项。
 4. 在 `app_registry.c` include 头文件，并添加 `app_case_t` 条目。
 5. 在 `docs/modules/` 添加对应文档。
 

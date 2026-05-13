@@ -1,6 +1,28 @@
 # led
 
-## 模块接口
+## 使用方式
+
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> led_blink: LED GPIO output
+```
+
+可调参数：
+
+```text
+ESPESP Menu
+  -> LED module
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+## 当前模块已有接口
 
 ### `esp_err_t led_blink_run(void)`
 
@@ -13,7 +35,7 @@
 - 正常情况下不会返回。
 - GPIO 配置或写电平失败时会被 `ESP_ERROR_CHECK()` 捕获并触发错误处理。
 
-## 使用的 ESP-IDF 接口
+## 常用接口说明
 
 ### `esp_err_t gpio_config(const gpio_config_t *pGPIOConfig)`
 
@@ -25,7 +47,7 @@
 
 相关结构体 `gpio_config_t`：
 
-- `pin_bit_mask`：要配置的 GPIO 位掩码。本模块使用 `1ULL << CONFIG_CASE2_LED_GPIO`。
+- `pin_bit_mask`：要配置的 GPIO 位掩码。本模块使用 `1ULL << CONFIG_ESPESP_LED_GPIO`。
 - `mode`：GPIO 模式。本模块使用 `GPIO_MODE_OUTPUT`。
 - `pull_up_en`：是否启用内部上拉。本模块禁用。
 - `pull_down_en`：是否启用内部下拉。本模块禁用。
@@ -37,7 +59,7 @@
 
 参数：
 
-- `gpio_num`：GPIO 编号，本模块来自 `CONFIG_CASE2_LED_GPIO`。
+- `gpio_num`：GPIO 编号，本模块来自 `CONFIG_ESPESP_LED_GPIO`。
 - `level`：输出电平，`0` 为低电平，非 0 为高电平。
 
 返回值：
@@ -47,8 +69,8 @@
 
 ## 可配置项
 
-- `CONFIG_CASE2_LED_GPIO`：LED 所在 GPIO 编号。
-- `CONFIG_CASE2_LED_PERIOD_MS`：翻转周期，单位 ms。
+- `CONFIG_ESPESP_LED_GPIO`：LED 所在 GPIO 编号。
+- `CONFIG_ESPESP_LED_PERIOD_MS`：翻转周期，单位 ms。
 
 ## 注意事项
 

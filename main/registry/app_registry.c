@@ -5,14 +5,18 @@
 #include "adc_reader/adc_reader.h"
 #include "display/display.h"
 #include "http_client/http_get.h"
+#include "http_server/http_server.h"
+#include "https_server/https_server.h"
 #include "i2c_scan/i2c_scan.h"
 #include "led/led_blink.h"
 #include "microphone/microphone.h"
-#include "mqtt_client_demo/mqtt_client_demo.h"
+#include "mqtt_client/mqtt_client_app.h"
 #include "nvs_counter/nvs_counter.h"
 #include "rtos_tasks/rtos_tasks.h"
 #include "speaker/speaker.h"
 #include "system_info/system_info.h"
+#include "websocket_client/websocket_client.h"
+#include "websocket_server/websocket_server.h"
 #include "uart_echo/uart_echo.h"
 #include "wifi_station/wifi_station.h"
 
@@ -118,7 +122,39 @@ static const app_case_t s_cases[] = {
         .key = "mqtt_client",
         .title = "MQTT 发布订阅",
         .doc_path = "docs/modules/13_mqtt_client.md",
-        .run = mqtt_client_demo_run,
+        .run = mqtt_client_run,
+        .needs_wifi = true,
+        .runs_forever = true,
+    },
+    {
+        .key = "http_server",
+        .title = "HTTP 局域网服务",
+        .doc_path = "docs/modules/14_http_server.md",
+        .run = http_server_run,
+        .needs_wifi = true,
+        .runs_forever = true,
+    },
+    {
+        .key = "https_server",
+        .title = "HTTPS 安全局域网服务",
+        .doc_path = "docs/modules/15_https_server.md",
+        .run = https_server_run,
+        .needs_wifi = true,
+        .runs_forever = true,
+    },
+    {
+        .key = "websocket_server",
+        .title = "WebSocket 服务端实时通信",
+        .doc_path = "docs/modules/26_websocket_server.md",
+        .run = websocket_server_run,
+        .needs_wifi = true,
+        .runs_forever = true,
+    },
+    {
+        .key = "websocket_client",
+        .title = "WebSocket 客户端实时通信",
+        .doc_path = "docs/modules/26_websocket_client.md",
+        .run = websocket_client_run,
         .needs_wifi = true,
         .runs_forever = true,
     },
@@ -135,32 +171,40 @@ const app_case_t *app_registry_all(size_t *count)
 
 const app_case_t *app_registry_selected(void)
 {
-#if CONFIG_CASE2_MODULE_SYSTEM_INFO
+#if CONFIG_ESPESP_MODULE_SYSTEM_INFO
     return &s_cases[0];
-#elif CONFIG_CASE2_MODULE_RTOS_TASKS
+#elif CONFIG_ESPESP_MODULE_RTOS_TASKS
     return &s_cases[1];
-#elif CONFIG_CASE2_MODULE_LED_BLINK
+#elif CONFIG_ESPESP_MODULE_LED_BLINK
     return &s_cases[2];
-#elif CONFIG_CASE2_MODULE_NVS_COUNTER
+#elif CONFIG_ESPESP_MODULE_NVS_COUNTER
     return &s_cases[3];
-#elif CONFIG_CASE2_MODULE_WIFI_STATION
+#elif CONFIG_ESPESP_MODULE_WIFI_STATION
     return &s_cases[4];
-#elif CONFIG_CASE2_MODULE_HTTP_GET
+#elif CONFIG_ESPESP_MODULE_HTTP_GET
     return &s_cases[5];
-#elif CONFIG_CASE2_MODULE_ADC_READER
+#elif CONFIG_ESPESP_MODULE_ADC_READER
     return &s_cases[6];
-#elif CONFIG_CASE2_MODULE_UART_ECHO
+#elif CONFIG_ESPESP_MODULE_UART_ECHO
     return &s_cases[7];
-#elif CONFIG_CASE2_MODULE_I2C_SCAN
+#elif CONFIG_ESPESP_MODULE_I2C_SCAN
     return &s_cases[8];
-#elif CONFIG_CASE2_MODULE_MICROPHONE
+#elif CONFIG_ESPESP_MODULE_MICROPHONE
     return &s_cases[9];
-#elif CONFIG_CASE2_MODULE_SPEAKER
+#elif CONFIG_ESPESP_MODULE_SPEAKER
     return &s_cases[10];
-#elif CONFIG_CASE2_MODULE_DISPLAY
+#elif CONFIG_ESPESP_MODULE_DISPLAY
     return &s_cases[11];
-#elif CONFIG_CASE2_MODULE_MQTT_CLIENT
+#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
     return &s_cases[12];
+#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
+    return &s_cases[13];
+#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
+    return &s_cases[14];
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
+    return &s_cases[15];
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+    return &s_cases[16];
 #else
     return &s_cases[0];
 #endif

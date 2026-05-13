@@ -60,13 +60,13 @@ esp_err_t http_get_run(void)
 
     http_get_context_t ctx = {
         .printed_bytes = 0,
-        .print_limit = CONFIG_CASE2_HTTP_PRINT_LIMIT,
+        .print_limit = CONFIG_ESPESP_HTTP_PRINT_LIMIT,
     };
     esp_http_client_config_t config = {
-        .url = CONFIG_CASE2_HTTP_URL,
+        .url = CONFIG_ESPESP_HTTP_URL,
         .event_handler = http_event_handler,
         .user_data = &ctx,
-        .timeout_ms = CONFIG_CASE2_HTTP_TIMEOUT_MS,
+        .timeout_ms = CONFIG_ESPESP_HTTP_TIMEOUT_MS,
     };
 
     /* esp_http_client 事件回调适合边收边处理，避免一次性占用大块内存。 */
@@ -75,7 +75,7 @@ esp_err_t http_get_run(void)
         return ESP_ERR_NO_MEM;
     }
 
-    ESP_LOGI(TAG, "GET %s", CONFIG_CASE2_HTTP_URL);
+    ESP_LOGI(TAG, "GET %s", CONFIG_ESPESP_HTTP_URL);
     esp_err_t ret = esp_http_client_perform(client);
     if (ret == ESP_OK) {
         ESP_LOGI(TAG, "status=%d, content_length=%" PRId64,

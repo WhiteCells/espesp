@@ -1,6 +1,23 @@
 # nvs_counter
 
-## 模块接口
+## 使用方式
+
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> nvs_counter: persistent boot counter
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+按开发板 reset 后再次观察 `boot_count`。
+
+## 当前模块已有接口
 
 ### `esp_err_t nvs_counter_run(void)`
 
@@ -18,7 +35,7 @@
 - `NVS_NAMESPACE = "learn"`：NVS 命名空间，类似一个小型分类。
 - `BOOT_KEY = "boot_count"`：保存启动次数的 key。
 
-## 使用的 ESP-IDF 接口
+## 常用接口说明
 
 ### `esp_err_t nvs_open(const char *name, nvs_open_mode_t open_mode, nvs_handle_t *out_handle)`
 

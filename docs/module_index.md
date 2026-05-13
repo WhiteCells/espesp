@@ -1,11 +1,11 @@
-# ESP 必学项学习路线
+# ESP 模块能力索引
 
-这份路线按“能运行 -> 能读懂 -> 能改参数 -> 能接外设 -> 能联网”的顺序安排。
-每个阶段都对应本项目里的单模块，可以只改一个模块、只观察一类日志或硬件现象。
+这份索引按“能运行 -> 能读懂 -> 能改参数 -> 能接外设 -> 能联网”的顺序组织。
+每个阶段都对应本项目里的单模块，可以只启用一个模块，只关注一类日志、网络接口或硬件现象。
 
 ## 1. 工程与启动
 
-先学：
+核心点：
 
 - `app_main()` 是应用入口。
 - `menuconfig` 生成 `sdkconfig`，代码里通过 `CONFIG_*` 宏读取配置。
@@ -19,7 +19,7 @@
 
 ## 2. FreeRTOS 基础
 
-ESP-IDF 应用运行在 FreeRTOS 上。必须先理解：
+ESP-IDF 应用运行在 FreeRTOS 上。核心概念包括：
 
 - task：并发执行单元。
 - priority：任务优先级。
@@ -34,7 +34,7 @@ ESP-IDF 应用运行在 FreeRTOS 上。必须先理解：
 
 ## 3. LED、GPIO 和板级差异
 
-GPIO 是接 LED、按键、继电器、传感器的基础。必须理解：
+GPIO 是接 LED、按键、继电器、传感器的基础。核心差异包括：
 
 - GPIO 编号不是开发板丝印编号。
 - 有些板载 LED 不是 GPIO2。
@@ -48,7 +48,7 @@ GPIO 是接 LED、按键、继电器、传感器的基础。必须理解：
 ## 4. NVS 持久化
 
 NVS 适合保存少量配置，例如 Wi-Fi 配网结果、设备编号、运行计数。
-必须理解：
+关键规则：
 
 - NVS 需要初始化。
 - namespace 用来隔离数据。
@@ -84,17 +84,38 @@ NVS 适合保存少量配置，例如 Wi-Fi 配网结果、设备编号、运行
 - `wifi_station`
 - 源码：`main/wifi_station/wifi_station.c`
 
-## 7. HTTP Client
+## 7. HTTP
 
-HTTP 模块训练“先联网，再请求，再处理回调”的流程。先用 HTTP 明文地址学习
-client API，等流程熟悉后再扩展 HTTPS 证书。
+HTTP client 模块训练“先联网，再请求，再处理回调”的流程。HTTP/HTTPS server
+模块训练“设备入网后监听端口、注册路由、处理请求、鉴权和返回响应”的流程。
+HTTP 只适合受控局域网调试；需要传输控制命令或敏感状态时使用 HTTPS。
 
 对应模块：
 
 - `http_get`
+- `http_server`
+- `https_server`
+- `websocket_server`
+- `websocket_client`
 - 源码：`main/http_client/http_get.c`
+- 源码：`main/http_server/http_server.c`
+- 源码：`main/https_server/https_server.c`
+- 源码：`main/websocket_server/websocket_server.c`
+- 源码：`main/websocket_client/websocket_client.c`
 
-## 8. MQTT Client
+## 8. WebSocket
+
+WebSocket 适合浏览器和桌面客户端与设备做实时双向通信。它比 HTTP 更适合持续推送、
+即时控制和轻量心跳；比 MQTT 更适合直接连到一个设备的交互式会话。
+
+对应模块：
+
+- `websocket_server`
+- `websocket_client`
+- 源码：`main/websocket_server/websocket_server.c`
+- 源码：`main/websocket_client/websocket_client.c`
+
+## 9. MQTT Client
 
 MQTT 模块训练长连接、发布订阅和设备状态同步。它比 HTTP 更适合设备状态、
 远程控制、遥测和后续对话机器人的状态流。
@@ -102,4 +123,4 @@ MQTT 模块训练长连接、发布订阅和设备状态同步。它比 HTTP 更
 对应模块：
 
 - `mqtt_client`
-- 源码：`main/mqtt_client_demo/mqtt_client_demo.c`
+- 源码：`main/mqtt_client/mqtt_client_app.c`

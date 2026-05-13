@@ -1,6 +1,28 @@
 # adc_reader
 
-## 模块接口
+## 使用方式
+
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> adc_reader: read ADC1 channel
+```
+
+可调参数：
+
+```text
+ESPESP Menu
+  -> ADC reader module
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+## 当前模块已有接口
 
 ### `esp_err_t adc_reader_run(void)`
 
@@ -13,7 +35,7 @@
 - 正常情况下不会返回。
 - ADC 初始化、配置或读取失败时会被 `ESP_ERROR_CHECK()` 捕获。
 
-## 使用的 ESP-IDF 接口和结构体
+## 常用接口说明
 
 ### `adc_oneshot_unit_init_cfg_t`
 
@@ -53,7 +75,7 @@ ADC 通道配置。
 参数：
 
 - `adc_handle`：ADC 单元句柄。
-- `channel`：ADC channel，本模块来自 `CONFIG_CASE2_ADC_CHANNEL`。
+- `channel`：ADC channel，本模块来自 `CONFIG_ESPESP_ADC_CHANNEL`。
 - `channel_config`：通道配置。
 
 注意：ADC channel 不是 GPIO number，需要查芯片映射。
@@ -85,8 +107,8 @@ ADC 通道配置。
 
 ## 可配置项
 
-- `CONFIG_CASE2_ADC_CHANNEL`：ADC1 channel。
-- `CONFIG_CASE2_ADC_PERIOD_MS`：读取周期，单位 ms。
+- `CONFIG_ESPESP_ADC_CHANNEL`：ADC1 channel。
+- `CONFIG_ESPESP_ADC_PERIOD_MS`：读取周期，单位 ms。
 
 ## 注意事项
 

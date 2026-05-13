@@ -1,8 +1,32 @@
-# mqtt_client_demo
+# mqtt_client
 
-## 模块接口
+## 使用方式
 
-### `esp_err_t mqtt_client_demo_run(void)`
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> mqtt_client: Wi-Fi + MQTT publish/subscribe
+```
+
+配置 Wi-Fi 和 MQTT：
+
+```text
+ESPESP Menu
+  -> WiFi module
+ESPESP Menu
+  -> MQTT client module
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+## 当前模块已有接口
+
+### `esp_err_t mqtt_client_run(void)`
 
 先连接 Wi-Fi，再连接 MQTT broker，订阅命令 topic，并周期性发布状态消息。
 
@@ -16,7 +40,7 @@
 - `ESP_ERR_TIMEOUT`：连接 broker 超时。
 - 其他 `esp_err_t`：Wi-Fi、MQTT 初始化或启动失败。
 
-## 使用的 ESP-IDF 接口和结构体
+## 常用接口说明
 
 ### `esp_mqtt_client_config_t`
 
@@ -57,16 +81,16 @@ MQTT client 配置。
 
 ## 可配置项
 
-- `CONFIG_CASE2_MQTT_BROKER_URI`：Broker 地址。
-- `CONFIG_CASE2_MQTT_CLIENT_ID`：Client ID。
-- `CONFIG_CASE2_MQTT_STATUS_TOPIC`：状态发布 topic。
-- `CONFIG_CASE2_MQTT_CMD_TOPIC`：命令订阅 topic。
-- `CONFIG_CASE2_MQTT_PUBLISH_PERIOD_MS`：状态发布周期。
-- `CONFIG_CASE2_MQTT_CONNECT_TIMEOUT_MS`：连接等待超时。
-- `CONFIG_CASE2_MQTT_KEEPALIVE_SEC`：MQTT keepalive。
+- `CONFIG_ESPESP_MQTT_BROKER_URI`：Broker 地址。
+- `CONFIG_ESPESP_MQTT_CLIENT_ID`：Client ID。
+- `CONFIG_ESPESP_MQTT_STATUS_TOPIC`：状态发布 topic。
+- `CONFIG_ESPESP_MQTT_CMD_TOPIC`：命令订阅 topic。
+- `CONFIG_ESPESP_MQTT_PUBLISH_PERIOD_MS`：状态发布周期。
+- `CONFIG_ESPESP_MQTT_CONNECT_TIMEOUT_MS`：连接等待超时。
+- `CONFIG_ESPESP_MQTT_KEEPALIVE_SEC`：MQTT keepalive。
 
 ## 注意事项
 
 - ESP32 访问电脑上的测试 broker 时，要填电脑局域网 IP，不要填 `127.0.0.1`。
 - 本模块默认使用明文 MQTT。生产环境通常需要 TLS、鉴权和 topic 权限控制。
-- QoS 0 不保证必达，适合状态心跳和学习。关键命令通常至少用 QoS 1。
+- QoS 0 不保证必达，适合状态心跳和普通遥测。关键命令通常至少用 QoS 1。

@@ -1,6 +1,10 @@
 # core
 
-## 模块接口
+## 使用方式
+
+`core` 是公共支撑模块，不在 menuconfig 的模块选择器中单独运行。其他模块会复用这里的 NVS、网络初始化、banner 和 idle helper。
+
+## 当前模块已有接口
 
 ### `esp_err_t app_common_init_nvs(void)`
 
@@ -71,7 +75,16 @@
 - `needs_wifi`：标记模块是否依赖 Wi-Fi，当前用于说明和后续扩展。
 - `runs_forever`：模块是否自己常驻运行；如果为 `false`，`app_main()` 会进入公共 idle 循环。
 
+## 常用接口说明
+
+- `nvs_flash_init()`：初始化默认 NVS 分区。
+- `nvs_flash_erase()`：NVS 分区无空闲页或版本变化时擦除后重试初始化。
+- `esp_netif_init()`：初始化 TCP/IP 网络接口层。
+- `esp_event_loop_create_default()`：创建默认事件循环，Wi-Fi/IP/MQTT 等事件分发依赖它。
+- `vTaskDelay()`：在 idle helper 中周期让出 CPU。
+- `ESP_LOGW()`：记录 NVS 修复类警告。
+
 ## 注意事项
 
-- 学习工程里 NVS 异常时自动擦除可以接受；产品工程里要避免无提示擦除用户配置。
+- 示例工程里 NVS 异常时自动擦除可以接受；产品工程里要避免无提示擦除用户配置。
 - 默认事件循环全局只能创建一次，重复创建会返回 `ESP_ERR_INVALID_STATE`，本模块将其视为已就绪。

@@ -1,6 +1,28 @@
 # microphone
 
-## 模块接口
+## 使用方式
+
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> microphone: read I2S microphone frames
+```
+
+可调参数：
+
+```text
+ESPESP Menu
+  -> Microphone module
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+## 当前模块已有接口
 
 ### `esp_err_t microphone_run(void)`
 
@@ -28,7 +50,7 @@
 - `ESP_OK`：通道创建并初始化成功。
 - 其他错误：I2S 通道创建或标准模式初始化失败。
 
-## 使用的 ESP-IDF 接口和结构体
+## 常用接口说明
 
 ### `i2s_chan_config_t`
 
@@ -57,7 +79,7 @@ I2S 通道基础配置。本模块通过 `I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUT
 
 本模块字段：
 
-- `clk_cfg`：由 `I2S_STD_CLK_DEFAULT_CONFIG(CONFIG_CASE2_MIC_SAMPLE_RATE_HZ)` 生成。
+- `clk_cfg`：由 `I2S_STD_CLK_DEFAULT_CONFIG(CONFIG_ESPESP_MIC_SAMPLE_RATE_HZ)` 生成。
 - `slot_cfg`：由 `I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_32BIT, I2S_SLOT_MODE_MONO)` 生成。
 - `gpio_cfg`：BCLK、WS、DIN 引脚配置。
 
@@ -67,7 +89,7 @@ I2S clock 配置。
 
 关键字段：
 
-- `sample_rate_hz`：采样率，本模块来自 `CONFIG_CASE2_MIC_SAMPLE_RATE_HZ`。
+- `sample_rate_hz`：采样率，本模块来自 `CONFIG_ESPESP_MIC_SAMPLE_RATE_HZ`。
 - `clk_src`：时钟源，默认宏使用 `I2S_CLK_SRC_DEFAULT`。
 - `mclk_multiple`：MCLK 与采样率倍数，默认宏通常使用 256。
 - `bclk_div`：BCLK 分频，默认宏提供常用值。
@@ -92,10 +114,10 @@ I2S GPIO 配置。
 本模块字段：
 
 - `mclk = I2S_GPIO_UNUSED`：不输出 MCLK。
-- `bclk = CONFIG_CASE2_MIC_BCLK_GPIO`：bit clock。
-- `ws = CONFIG_CASE2_MIC_WS_GPIO`：word select，也叫 LRCLK。
+- `bclk = CONFIG_ESPESP_MIC_BCLK_GPIO`：bit clock。
+- `ws = CONFIG_ESPESP_MIC_WS_GPIO`：word select，也叫 LRCLK。
 - `dout = I2S_GPIO_UNUSED`：不发送数据。
-- `din = CONFIG_CASE2_MIC_DIN_GPIO`：麦克风数据输入。
+- `din = CONFIG_ESPESP_MIC_DIN_GPIO`：麦克风数据输入。
 - `invert_flags`：时钟反相配置，本模块全部为 `false`。
 
 ### `i2s_channel_read(handle, dest, size, bytes_read, timeout_ms)`
@@ -112,10 +134,10 @@ I2S GPIO 配置。
 
 ## 可配置项
 
-- `CONFIG_CASE2_MIC_BCLK_GPIO`：麦克风 BCLK。
-- `CONFIG_CASE2_MIC_WS_GPIO`：麦克风 WS/LRCLK。
-- `CONFIG_CASE2_MIC_DIN_GPIO`：麦克风 DATA 输入。
-- `CONFIG_CASE2_MIC_SAMPLE_RATE_HZ`：采样率。
+- `CONFIG_ESPESP_MIC_BCLK_GPIO`：麦克风 BCLK。
+- `CONFIG_ESPESP_MIC_WS_GPIO`：麦克风 WS/LRCLK。
+- `CONFIG_ESPESP_MIC_DIN_GPIO`：麦克风 DATA 输入。
+- `CONFIG_ESPESP_MIC_SAMPLE_RATE_HZ`：采样率。
 
 ## 注意事项
 

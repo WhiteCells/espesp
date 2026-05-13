@@ -28,10 +28,10 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
     }
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (s_retry_num < CONFIG_CASE2_WIFI_MAXIMUM_RETRY) {
+        if (s_retry_num < CONFIG_ESPESP_WIFI_MAXIMUM_RETRY) {
             s_retry_num++;
             ESP_LOGI(TAG, "retry to connect to WiFi (%d/%d)",
-                     s_retry_num, CONFIG_CASE2_WIFI_MAXIMUM_RETRY);
+                     s_retry_num, CONFIG_ESPESP_WIFI_MAXIMUM_RETRY);
             esp_wifi_connect();
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
@@ -49,7 +49,7 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
 
 esp_err_t wifi_station_connect(void)
 {
-    if (strlen(CONFIG_CASE2_WIFI_SSID) == 0) {
+    if (strlen(CONFIG_ESPESP_WIFI_SSID) == 0) {
         ESP_LOGE(TAG, "WiFi SSID is empty. Run `idf.py menuconfig` to set it.");
         return ESP_ERR_INVALID_ARG;
     }
@@ -98,15 +98,15 @@ esp_err_t wifi_station_connect(void)
 
     wifi_config_t wifi_config = { 0 };
     /* snprintf 避免 SSID/密码超过 ESP-IDF 结构体字段长度时越界。 */
-    snprintf((char *)wifi_config.sta.ssid, sizeof(wifi_config.sta.ssid), "%s", CONFIG_CASE2_WIFI_SSID);
-    snprintf((char *)wifi_config.sta.password, sizeof(wifi_config.sta.password), "%s", CONFIG_CASE2_WIFI_PASSWORD);
-    wifi_config.sta.threshold.authmode = strlen(CONFIG_CASE2_WIFI_PASSWORD) == 0 ? WIFI_AUTH_OPEN : WIFI_AUTH_WPA2_PSK;
+    snprintf((char *)wifi_config.sta.ssid, sizeof(wifi_config.sta.ssid), "%s", CONFIG_ESPESP_WIFI_SSID);
+    snprintf((char *)wifi_config.sta.password, sizeof(wifi_config.sta.password), "%s", CONFIG_ESPESP_WIFI_PASSWORD);
+    wifi_config.sta.threshold.authmode = strlen(CONFIG_ESPESP_WIFI_PASSWORD) == 0 ? WIFI_AUTH_OPEN : WIFI_AUTH_WPA2_PSK;
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG, "connecting to WiFi SSID: %s", CONFIG_CASE2_WIFI_SSID);
+    ESP_LOGI(TAG, "connecting to WiFi SSID: %s", CONFIG_ESPESP_WIFI_SSID);
 
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
                                            WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,

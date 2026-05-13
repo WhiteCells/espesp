@@ -13,9 +13,9 @@ static const int RX_BUF_SIZE = 256;
 
 esp_err_t uart_echo_run(void)
 {
-    const uart_port_t port = CONFIG_CASE2_UART_PORT_NUM;
+    const uart_port_t port = CONFIG_ESPESP_UART_PORT_NUM;
     uart_config_t uart_config = {
-        .baud_rate = CONFIG_CASE2_UART_BAUD_RATE,
+        .baud_rate = CONFIG_ESPESP_UART_BAUD_RATE,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
@@ -27,17 +27,17 @@ esp_err_t uart_echo_run(void)
     ESP_ERROR_CHECK(uart_driver_install(port, RX_BUF_SIZE * 2, 0, 0, NULL, 0));
     ESP_ERROR_CHECK(uart_param_config(port, &uart_config));
 
-#if CONFIG_CASE2_UART_USE_CUSTOM_PINS
+#if CONFIG_ESPESP_UART_USE_CUSTOM_PINS
     ESP_ERROR_CHECK(uart_set_pin(port,
-                                 CONFIG_CASE2_UART_TX_GPIO,
-                                 CONFIG_CASE2_UART_RX_GPIO,
+                                 CONFIG_ESPESP_UART_TX_GPIO,
+                                 CONFIG_ESPESP_UART_RX_GPIO,
                                  UART_PIN_NO_CHANGE,
                                  UART_PIN_NO_CHANGE));
 #endif
 
     const char *hello = "UART echo module ready. Type text and it will be sent back.\r\n";
     ESP_ERROR_CHECK(uart_write_bytes(port, hello, strlen(hello)));
-    ESP_LOGI(TAG, "UART%d echo at %d baud", port, CONFIG_CASE2_UART_BAUD_RATE);
+    ESP_LOGI(TAG, "UART%d echo at %d baud", port, CONFIG_ESPESP_UART_BAUD_RATE);
 
     uint8_t data[RX_BUF_SIZE];
     while (true) {

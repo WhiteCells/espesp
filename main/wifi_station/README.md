@@ -1,6 +1,28 @@
 # wifi_station
 
-## 模块接口
+## 使用方式
+
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> wifi_station: connect to Wi-Fi
+```
+
+配置网络：
+
+```text
+ESPESP Menu
+  -> WiFi module
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+## 当前模块已有接口
 
 ### `esp_err_t wifi_station_connect(void)`
 
@@ -24,7 +46,7 @@
 
 返回值：同 `wifi_station_connect()`。
 
-## 使用的 ESP-IDF 接口和结构体
+## 常用接口说明
 
 ### `wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT()`
 
@@ -33,7 +55,7 @@ Wi-Fi 驱动初始化配置。
 说明：
 
 - `WIFI_INIT_CONFIG_DEFAULT()` 会填好驱动需要的 buffer、队列、任务优先级等默认值。
-- 学习和常规 STA 入网场景优先使用默认宏，不建议手动拼字段。
+- 常规 STA 入网场景优先使用默认宏，不建议手动拼字段。
 
 ### `esp_err_t esp_wifi_init(const wifi_init_config_t *config)`
 
@@ -103,9 +125,9 @@ Wi-Fi 模式配置结构体。本模块使用 `wifi_config.sta`。
 
 ## 可配置项
 
-- `CONFIG_CASE2_WIFI_SSID`：Wi-Fi 名称。
-- `CONFIG_CASE2_WIFI_PASSWORD`：Wi-Fi 密码。
-- `CONFIG_CASE2_WIFI_MAXIMUM_RETRY`：断开后的最大重试次数。
+- `CONFIG_ESPESP_WIFI_SSID`：Wi-Fi 名称。
+- `CONFIG_ESPESP_WIFI_PASSWORD`：Wi-Fi 密码。
+- `CONFIG_ESPESP_WIFI_MAXIMUM_RETRY`：断开后的最大重试次数。
 
 ## 注意事项
 

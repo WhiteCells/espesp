@@ -13,7 +13,7 @@ app = Flask(__name__)
 def index():
     """Default GET endpoint for quick browser or ESP-IDF testing."""
     return jsonify(
-        service="case2-python-http-server",
+        service="espesp-python-http-server",
         protocol="http",
         routes=["/", "/health", "/esp", "/text?msg=hello", "/json", "/echo?name=esp32"],
     )

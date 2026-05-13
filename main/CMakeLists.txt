@@ -9,7 +9,12 @@ idf_component_register(
         "nvs_counter/nvs_counter.c"
         "wifi_station/wifi_station.c"
         "http_client/http_get.c"
-        "mqtt_client_demo/mqtt_client_demo.c"
+        "lan_service/lan_service.c"
+        "http_server/http_server.c"
+        "https_server/https_server.c"
+        "websocket_server/websocket_server.c"
+        "websocket_client/websocket_client.c"
+        "mqtt_client/mqtt_client_app.c"
         "adc_reader/adc_reader.c"
         "uart_echo/uart_echo.c"
         "i2c_scan/i2c_scan.c"
@@ -25,10 +30,14 @@ idf_component_register(
         esp_driver_uart
         esp_event
         esp_http_client
+        esp_http_server
+        esp_https_server
+        esp_websocket_client
         esp_hw_support
         mqtt
         esp_netif
         esp_system
+        esp_timer
         esp_wifi
         freertos
         heap

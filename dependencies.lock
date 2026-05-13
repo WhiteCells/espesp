@@ -1,4 +1,14 @@
 dependencies:
+  espressif/esp_websocket_client:
+    component_hash: 3fb288702517ef4d75bf933a115f1056ee0c2540d964f9e1d856e0bb67e1dfeb
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 1.7.0
   espressif/mqtt:
     component_hash: ffdad5659706b4dc14bc63f8eb73ef765efa015bf7e9adf71c813d52a2dc9342
     dependencies:
@@ -14,8 +24,9 @@ dependencies:
       type: idf
     version: 6.0.1
 direct_dependencies:
+- espressif/esp_websocket_client
 - espressif/mqtt
 - idf
-manifest_hash: 1435e51a4af5b40311e02a28a061d7b9e1d0b7154e48f2d0b9646eb31d18a885
+manifest_hash: a1862fc78e5787edd8af72cd003f8d00779243f337cbacf712e4fc47fbd7c56b
 target: esp32s3
 version: 3.0.0

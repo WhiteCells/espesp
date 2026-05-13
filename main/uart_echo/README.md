@@ -1,6 +1,28 @@
 # uart_echo
 
-## 模块接口
+## 使用方式
+
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> uart_echo: UART read/write
+```
+
+可调参数：
+
+```text
+ESPESP Menu
+  -> UART echo module
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+## 当前模块已有接口
 
 ### `esp_err_t uart_echo_run(void)`
 
@@ -13,7 +35,7 @@
 - 正常情况下不会返回。
 - UART 初始化、读写失败时会被 `ESP_ERROR_CHECK()` 捕获。
 
-## 使用的 ESP-IDF 接口和结构体
+## 常用接口说明
 
 ### `uart_config_t`
 
@@ -21,7 +43,7 @@ UART 参数配置。
 
 本模块使用字段：
 
-- `baud_rate`：波特率，来自 `CONFIG_CASE2_UART_BAUD_RATE`。
+- `baud_rate`：波特率，来自 `CONFIG_ESPESP_UART_BAUD_RATE`。
 - `data_bits`：数据位，本模块使用 `UART_DATA_8_BITS`。
 - `parity`：校验位，本模块使用 `UART_PARITY_DISABLE`。
 - `stop_bits`：停止位，本模块使用 `UART_STOP_BITS_1`。
@@ -34,7 +56,7 @@ UART 参数配置。
 
 参数：
 
-- `uart_num`：UART 端口号，本模块来自 `CONFIG_CASE2_UART_PORT_NUM`。
+- `uart_num`：UART 端口号，本模块来自 `CONFIG_ESPESP_UART_PORT_NUM`。
 - `rx_buffer_size`：RX ring buffer 大小，本模块为 `RX_BUF_SIZE * 2`。
 - `tx_buffer_size`：TX buffer 大小，本模块为 `0`，表示发送阻塞写。
 - `queue_size`：UART 事件队列长度，本模块为 `0`，不使用事件队列。
@@ -56,8 +78,8 @@ UART 参数配置。
 
 参数：
 
-- `tx_io_num`：TX GPIO，本模块来自 `CONFIG_CASE2_UART_TX_GPIO`。
-- `rx_io_num`：RX GPIO，本模块来自 `CONFIG_CASE2_UART_RX_GPIO`。
+- `tx_io_num`：TX GPIO，本模块来自 `CONFIG_ESPESP_UART_TX_GPIO`。
+- `rx_io_num`：RX GPIO，本模块来自 `CONFIG_ESPESP_UART_RX_GPIO`。
 - `rts_io_num`：RTS GPIO，本模块不使用，传 `UART_PIN_NO_CHANGE`。
 - `cts_io_num`：CTS GPIO，本模块不使用，传 `UART_PIN_NO_CHANGE`。
 
@@ -76,14 +98,14 @@ UART 参数配置。
 
 ## 可配置项
 
-- `CONFIG_CASE2_UART_PORT_NUM`：UART 端口号。
-- `CONFIG_CASE2_UART_BAUD_RATE`：波特率。
-- `CONFIG_CASE2_UART_USE_CUSTOM_PINS`：是否启用自定义 TX/RX 引脚。
-- `CONFIG_CASE2_UART_TX_GPIO`：TX GPIO。
-- `CONFIG_CASE2_UART_RX_GPIO`：RX GPIO。
+- `CONFIG_ESPESP_UART_PORT_NUM`：UART 端口号。
+- `CONFIG_ESPESP_UART_BAUD_RATE`：波特率。
+- `CONFIG_ESPESP_UART_USE_CUSTOM_PINS`：是否启用自定义 TX/RX 引脚。
+- `CONFIG_ESPESP_UART_TX_GPIO`：TX GPIO。
+- `CONFIG_ESPESP_UART_RX_GPIO`：RX GPIO。
 
 ## 注意事项
 
 - TX/RX 需要交叉连接。
-- UART0 常用于下载和日志，外设学习建议 UART1。
+- UART0 常用于下载和日志，外设连接建议 UART1。
 - 两端波特率、数据位、校验位、停止位必须一致。

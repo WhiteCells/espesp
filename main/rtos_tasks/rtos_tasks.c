@@ -34,7 +34,7 @@ static void producer_task(void *arg)
             ESP_LOGW(TAG, "queue full, drop sample %" PRIu32, sample.sequence);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(CONFIG_CASE2_FREERTOS_PRODUCER_PERIOD_MS));
+        vTaskDelay(pdMS_TO_TICKS(CONFIG_ESPESP_FREERTOS_PRODUCER_PERIOD_MS));
     }
 }
 
@@ -63,7 +63,7 @@ static void heartbeat_task(void *arg)
 
 esp_err_t rtos_tasks_run(void)
 {
-    s_sample_queue = xQueueCreate(CONFIG_CASE2_FREERTOS_QUEUE_LENGTH, sizeof(sensor_sample_t));
+    s_sample_queue = xQueueCreate(CONFIG_ESPESP_FREERTOS_QUEUE_LENGTH, sizeof(sensor_sample_t));
     if (s_sample_queue == NULL) {
         return ESP_ERR_NO_MEM;
     }

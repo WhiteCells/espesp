@@ -20,13 +20,13 @@ static esp_err_t speaker_create_channel(i2s_chan_handle_t *tx_channel)
     ESP_RETURN_ON_ERROR(i2s_new_channel(&channel_config, tx_channel, NULL), TAG, "create I2S TX channel");
 
     i2s_std_config_t std_config = {
-        .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(CONFIG_CASE2_SPK_SAMPLE_RATE_HZ),
+        .clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(CONFIG_ESPESP_SPK_SAMPLE_RATE_HZ),
         .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_MONO),
         .gpio_cfg = {
             .mclk = I2S_GPIO_UNUSED,
-            .bclk = CONFIG_CASE2_SPK_BCLK_GPIO,
-            .ws = CONFIG_CASE2_SPK_WS_GPIO,
-            .dout = CONFIG_CASE2_SPK_DOUT_GPIO,
+            .bclk = CONFIG_ESPESP_SPK_BCLK_GPIO,
+            .ws = CONFIG_ESPESP_SPK_WS_GPIO,
+            .dout = CONFIG_ESPESP_SPK_DOUT_GPIO,
             .din = I2S_GPIO_UNUSED,
             .invert_flags = {
                 .mclk_inv = false,
@@ -49,11 +49,11 @@ static esp_err_t speaker_create_channel(i2s_chan_handle_t *tx_channel)
 static void fill_sine_tone(int16_t *buffer, size_t sample_count, uint32_t *phase)
 {
     for (size_t i = 0; i < sample_count; i++) {
-        float cycles = (float)(*phase) * (float)CONFIG_CASE2_SPK_TONE_HZ /
-                       (float)CONFIG_CASE2_SPK_SAMPLE_RATE_HZ;
+        float cycles = (float)(*phase) * (float)CONFIG_ESPESP_SPK_TONE_HZ /
+                       (float)CONFIG_ESPESP_SPK_SAMPLE_RATE_HZ;
         buffer[i] = (int16_t)(sinf(cycles * TWO_PI) * TONE_AMPLITUDE);
         (*phase)++;
-        if (*phase >= CONFIG_CASE2_SPK_SAMPLE_RATE_HZ) {
+        if (*phase >= CONFIG_ESPESP_SPK_SAMPLE_RATE_HZ) {
             *phase = 0;
         }
     }
@@ -67,11 +67,11 @@ esp_err_t speaker_run(void)
 
     ESP_LOGI(TAG,
              "I2S speaker: BCLK=GPIO%d, WS=GPIO%d, DOUT=GPIO%d, sample_rate=%d Hz, tone=%d Hz",
-             CONFIG_CASE2_SPK_BCLK_GPIO,
-             CONFIG_CASE2_SPK_WS_GPIO,
-             CONFIG_CASE2_SPK_DOUT_GPIO,
-             CONFIG_CASE2_SPK_SAMPLE_RATE_HZ,
-             CONFIG_CASE2_SPK_TONE_HZ);
+             CONFIG_ESPESP_SPK_BCLK_GPIO,
+             CONFIG_ESPESP_SPK_WS_GPIO,
+             CONFIG_ESPESP_SPK_DOUT_GPIO,
+             CONFIG_ESPESP_SPK_SAMPLE_RATE_HZ,
+             CONFIG_ESPESP_SPK_TONE_HZ);
 
     int16_t samples[TONE_FRAME_COUNT];
     uint32_t phase = 0;

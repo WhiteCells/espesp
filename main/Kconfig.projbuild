@@ -1,62 +1,74 @@
 menu "ESPESP Menu"
 
-choice CASE2_SELECTED_MODULE
+choice ESPESP_SELECTED_MODULE
     prompt "Module selector"
-    default CASE2_MODULE_SYSTEM_INFO
+    default ESPESP_MODULE_SYSTEM_INFO
     help
         Select one module to run after boot. This project is designed for
-        single-module learning: switch here, rebuild, flash, and watch serial
-        logs or the connected hardware.
+        single-module operation: switch here, rebuild, flash, and watch serial
+        logs, network endpoints, or the connected hardware.
 
-config CASE2_MODULE_SYSTEM_INFO
+config ESPESP_MODULE_SYSTEM_INFO
     bool "system_info: chip/app/heap information"
 
-config CASE2_MODULE_RTOS_TASKS
+config ESPESP_MODULE_RTOS_TASKS
     bool "rtos_tasks: tasks and queue"
 
-config CASE2_MODULE_LED_BLINK
+config ESPESP_MODULE_LED_BLINK
     bool "led_blink: LED GPIO output"
 
-config CASE2_MODULE_NVS_COUNTER
+config ESPESP_MODULE_NVS_COUNTER
     bool "nvs_counter: persistent boot counter"
 
-config CASE2_MODULE_WIFI_STATION
+config ESPESP_MODULE_WIFI_STATION
     bool "wifi_station: connect to Wi-Fi"
 
-config CASE2_MODULE_HTTP_GET
+config ESPESP_MODULE_HTTP_GET
     bool "http_get: Wi-Fi + HTTP GET"
 
-config CASE2_MODULE_ADC_READER
+config ESPESP_MODULE_ADC_READER
     bool "adc_reader: read ADC1 channel"
 
-config CASE2_MODULE_UART_ECHO
+config ESPESP_MODULE_UART_ECHO
     bool "uart_echo: UART read/write"
 
-config CASE2_MODULE_I2C_SCAN
+config ESPESP_MODULE_I2C_SCAN
     bool "i2c_scan: scan I2C addresses"
 
-config CASE2_MODULE_MICROPHONE
+config ESPESP_MODULE_MICROPHONE
     bool "microphone: read I2S microphone frames"
 
-config CASE2_MODULE_SPEAKER
+config ESPESP_MODULE_SPEAKER
     bool "speaker: play I2S sine tone"
 
-config CASE2_MODULE_DISPLAY
+config ESPESP_MODULE_DISPLAY
     bool "display: write SSD1306 OLED pattern"
 
-config CASE2_MODULE_MQTT_CLIENT
+config ESPESP_MODULE_MQTT_CLIENT
     bool "mqtt_client: Wi-Fi + MQTT publish/subscribe"
+
+config ESPESP_MODULE_HTTP_SERVER
+    bool "http_server: production-style LAN HTTP service"
+
+config ESPESP_MODULE_HTTPS_SERVER
+    bool "https_server: secure LAN HTTPS service"
+
+config ESPESP_MODULE_WEBSOCKET_SERVER
+    bool "websocket_server: WebSocket upgrade service"
+
+config ESPESP_MODULE_WEBSOCKET_CLIENT
+    bool "websocket_client: Wi-Fi + WebSocket client"
 
 endchoice
 
 menu "FreeRTOS task module"
 
-config CASE2_FREERTOS_QUEUE_LENGTH
+config ESPESP_FREERTOS_QUEUE_LENGTH
     int "Queue length"
     range 1 32
     default 5
 
-config CASE2_FREERTOS_PRODUCER_PERIOD_MS
+config ESPESP_FREERTOS_PRODUCER_PERIOD_MS
     int "Producer period in ms"
     range 50 10000
     default 1000
@@ -65,7 +77,7 @@ endmenu
 
 menu "LED module"
 
-config CASE2_LED_GPIO
+config ESPESP_LED_GPIO
     int "LED GPIO number"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
@@ -74,7 +86,7 @@ config CASE2_LED_GPIO
         Set this to the LED GPIO of your board. Many ESP32 boards use GPIO2,
         while some ESP32-S3 boards use GPIO48 or another board-specific pin.
 
-config CASE2_LED_PERIOD_MS
+config ESPESP_LED_PERIOD_MS
     int "LED blink period in ms"
     range 50 10000
     default 500
@@ -83,7 +95,7 @@ endmenu
 
 menu "NVS module"
 
-config CASE2_NVS_NOTE
+config ESPESP_NVS_NOTE
     string "Note"
     default "Run this module, reset the board, and watch boot_count increase."
     help
@@ -93,19 +105,19 @@ endmenu
 
 menu "WiFi module"
 
-config CASE2_WIFI_SSID
+config ESPESP_WIFI_SSID
     string "WiFi SSID"
     default ""
     help
         The WiFi network name used by the station and HTTP modules.
 
-config CASE2_WIFI_PASSWORD
+config ESPESP_WIFI_PASSWORD
     string "WiFi password"
     default ""
     help
         The WiFi password. Leave it empty only for an open network.
 
-config CASE2_WIFI_MAXIMUM_RETRY
+config ESPESP_WIFI_MAXIMUM_RETRY
     int "Maximum WiFi retries"
     range 1 20
     default 5
@@ -116,57 +128,259 @@ endmenu
 
 menu "HTTP client module"
 
-config CASE2_HTTP_URL
+config ESPESP_HTTP_URL
     string "HTTP GET URL"
     default "http://httpbin.org/get"
     help
         Use http:// for the first networking lesson. HTTPS requires certificate
         handling, which is a later topic.
 
-config CASE2_HTTP_TIMEOUT_MS
+config ESPESP_HTTP_TIMEOUT_MS
     int "HTTP timeout in ms"
     range 1000 30000
     default 5000
 
-config CASE2_HTTP_PRINT_LIMIT
+config ESPESP_HTTP_PRINT_LIMIT
     int "Maximum response bytes printed"
     range 0 4096
     default 512
 
 endmenu
 
+menu "LAN service"
+
+config ESPESP_LAN_SERVICE_REQUIRE_AUTH
+    bool "Require bearer token for control/status APIs"
+    default y
+    help
+        Keep enabled for LAN deployments. /health remains public, while
+        /api/v1/status and /api/v1/control require Authorization: Bearer <token>.
+
+config ESPESP_LAN_SERVICE_AUTH_TOKEN
+    string "Bearer token"
+    default ""
+    help
+        Set a strong token before exposing the LAN service. HTTP server startup
+        fails when auth is required and this value is empty.
+
+config ESPESP_LAN_SERVICE_MAX_BODY_LEN
+    int "Maximum POST body bytes"
+    range 64 1024
+    default 256
+
+config ESPESP_LAN_SERVICE_RECV_TIMEOUT_SEC
+    int "Receive timeout in seconds"
+    range 1 30
+    default 5
+
+config ESPESP_LAN_SERVICE_SEND_TIMEOUT_SEC
+    int "Send timeout in seconds"
+    range 1 30
+    default 5
+
+endmenu
+
+menu "HTTP server module"
+
+config ESPESP_HTTP_SERVER_PORT
+    int "HTTP server port"
+    range 1 65535
+    default 80
+
+config ESPESP_HTTP_SERVER_CTRL_PORT
+    int "HTTP server control port"
+    range 1 65535
+    default 32768
+    help
+        Internal control socket used by esp_http_server. Keep it different
+        from the public HTTP server port.
+
+config ESPESP_HTTP_SERVER_STACK_SIZE
+    int "HTTP server task stack size"
+    range 4096 16384
+    default 4096
+
+config ESPESP_HTTP_SERVER_MAX_OPEN_SOCKETS
+    int "Maximum open sockets"
+    range 1 8
+    default 4
+
+endmenu
+
+menu "HTTPS server module"
+
+config ESPESP_HTTPS_SERVER_PORT
+    int "HTTPS server port"
+    range 1 65535
+    default 443
+
+config ESPESP_HTTPS_SERVER_CTRL_PORT
+    int "HTTPS server control port"
+    range 1 65535
+    default 32769
+    help
+        Internal control socket used by esp_https_server. Keep it different
+        from HTTP and HTTPS public ports.
+
+config ESPESP_HTTPS_SERVER_STACK_SIZE
+    int "HTTPS server task stack size"
+    range 8192 32768
+    default 12288
+
+config ESPESP_HTTPS_SERVER_MAX_OPEN_SOCKETS
+    int "Maximum open TLS sockets"
+    range 1 4
+    default 3
+
+config ESPESP_HTTPS_HANDSHAKE_TIMEOUT_MS
+    int "TLS handshake timeout in ms"
+    range 1000 30000
+    default 10000
+
+config ESPESP_HTTPS_CERT_NVS_NAMESPACE
+    string "NVS namespace for TLS credentials"
+    default "https_srv"
+
+config ESPESP_HTTPS_CERT_NVS_CERT_KEY
+    string "NVS key for server certificate PEM"
+    default "servercert"
+
+config ESPESP_HTTPS_CERT_NVS_PRIVATE_KEY
+    string "NVS key for private key PEM"
+    default "prvtkey"
+
+endmenu
+
+menu "WebSocket server module"
+
+config ESPESP_WS_SERVER_PORT
+    int "WebSocket server port"
+    range 1 65535
+    default 8080
+
+config ESPESP_WS_SERVER_PATH
+    string "WebSocket path"
+    default "/ws"
+    help
+        The URI used for the WebSocket upgrade request.
+
+config ESPESP_WS_SERVER_AUTH_TOKEN
+    string "Bearer token"
+    default ""
+    help
+        Leave empty to allow open access. When set, clients must send
+        Authorization: Bearer <token> during the handshake.
+
+config ESPESP_WS_SERVER_PUBLISH_PERIOD_MS
+    int "Status publish period in ms"
+    range 100 60000
+    default 1000
+    help
+        Periodic status JSON is pushed to connected clients as a heartbeat.
+
+config ESPESP_WS_SERVER_MAX_CLIENTS
+    int "Maximum WebSocket clients"
+    range 1 8
+    default 4
+    help
+        The server rejects new handshakes once this many WebSocket clients are
+        already connected.
+
+endmenu
+
+menu "WebSocket client module"
+
+config ESPESP_WS_CLIENT_URI
+    string "WebSocket server URI"
+    default "ws://192.168.1.23:8080/ws"
+    help
+        Use your computer's LAN IP when testing with server/ws_server/.
+        Do not use 127.0.0.1 from the ESP32.
+
+config ESPESP_WS_CLIENT_AUTH_TOKEN
+    string "Bearer token"
+    default ""
+    help
+        Leave empty for open endpoints. When set, the client sends
+        Authorization: Bearer <token> during the handshake.
+
+config ESPESP_WS_CLIENT_INITIAL_PAYLOAD
+    string "Initial text payload"
+    default "hello from espesp websocket_client"
+    help
+        Sent once after the connection is established. Leave empty to skip it.
+
+config ESPESP_WS_CLIENT_PUBLISH_PERIOD_MS
+    int "Status publish period in ms"
+    range 500 60000
+    default 5000
+    help
+        Periodic status JSON is sent while the WebSocket connection is up.
+
+config ESPESP_WS_CLIENT_CONNECT_TIMEOUT_MS
+    int "Connect timeout in ms"
+    range 1000 60000
+    default 10000
+
+config ESPESP_WS_CLIENT_NETWORK_TIMEOUT_MS
+    int "Network operation timeout in ms"
+    range 1000 30000
+    default 5000
+
+config ESPESP_WS_CLIENT_RECONNECT_TIMEOUT_MS
+    int "Reconnect delay in ms"
+    range 1000 60000
+    default 10000
+
+config ESPESP_WS_CLIENT_PING_INTERVAL_SEC
+    int "Ping interval in seconds"
+    range 1 300
+    default 10
+
+config ESPESP_WS_CLIENT_BUFFER_SIZE
+    int "Receive buffer size"
+    range 256 8192
+    default 1024
+
+config ESPESP_WS_CLIENT_TASK_STACK_SIZE
+    int "WebSocket client task stack size"
+    range 4096 16384
+    default 6144
+
+endmenu
+
 menu "MQTT client module"
 
-config CASE2_MQTT_BROKER_URI
+config ESPESP_MQTT_BROKER_URI
     string "MQTT broker URI"
     default "mqtt://192.168.1.23:1883"
     help
         Use your computer's LAN IP when testing with server/mqtt_broker/.
         Do not use 127.0.0.1 from the ESP32.
 
-config CASE2_MQTT_CLIENT_ID
+config ESPESP_MQTT_CLIENT_ID
     string "MQTT client ID"
-    default "case2-esp32"
+    default "espesp-esp32"
 
-config CASE2_MQTT_STATUS_TOPIC
+config ESPESP_MQTT_STATUS_TOPIC
     string "Status publish topic"
-    default "case2/device/status"
+    default "espesp/device/status"
 
-config CASE2_MQTT_CMD_TOPIC
+config ESPESP_MQTT_CMD_TOPIC
     string "Command subscribe topic"
-    default "case2/device/cmd"
+    default "espesp/device/cmd"
 
-config CASE2_MQTT_PUBLISH_PERIOD_MS
+config ESPESP_MQTT_PUBLISH_PERIOD_MS
     int "Status publish period in ms"
     range 1000 600000
     default 5000
 
-config CASE2_MQTT_CONNECT_TIMEOUT_MS
+config ESPESP_MQTT_CONNECT_TIMEOUT_MS
     int "Connect timeout in ms"
     range 1000 60000
     default 10000
 
-config CASE2_MQTT_KEEPALIVE_SEC
+config ESPESP_MQTT_KEEPALIVE_SEC
     int "MQTT keepalive in seconds"
     range 5 300
     default 60
@@ -175,7 +389,7 @@ endmenu
 
 menu "ADC reader module"
 
-config CASE2_ADC_CHANNEL
+config ESPESP_ADC_CHANNEL
     int "ADC1 channel"
     range 0 9 if IDF_TARGET_ESP32S3
     range 0 10
@@ -184,7 +398,7 @@ config CASE2_ADC_CHANNEL
         This is an ADC channel number, not a GPIO number. On ESP32-S3,
         ADC1 channel 2 maps to GPIO3.
 
-config CASE2_ADC_PERIOD_MS
+config ESPESP_ADC_PERIOD_MS
     int "ADC read period in ms"
     range 100 10000
     default 1000
@@ -193,30 +407,30 @@ endmenu
 
 menu "UART echo module"
 
-config CASE2_UART_PORT_NUM
+config ESPESP_UART_PORT_NUM
     int "UART port number"
     range 0 2
     default 1
 
-config CASE2_UART_BAUD_RATE
+config ESPESP_UART_BAUD_RATE
     int "UART baud rate"
     range 1200 2000000
     default 115200
 
-config CASE2_UART_USE_CUSTOM_PINS
+config ESPESP_UART_USE_CUSTOM_PINS
     bool "Use custom TX/RX GPIO pins"
     default y
 
-config CASE2_UART_TX_GPIO
+config ESPESP_UART_TX_GPIO
     int "UART TX GPIO"
-    depends on CASE2_UART_USE_CUSTOM_PINS
+    depends on ESPESP_UART_USE_CUSTOM_PINS
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 17
 
-config CASE2_UART_RX_GPIO
+config ESPESP_UART_RX_GPIO
     int "UART RX GPIO"
-    depends on CASE2_UART_USE_CUSTOM_PINS
+    depends on ESPESP_UART_USE_CUSTOM_PINS
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 18
@@ -225,19 +439,19 @@ endmenu
 
 menu "I2C scan module"
 
-config CASE2_I2C_SDA_GPIO
+config ESPESP_I2C_SDA_GPIO
     int "I2C SDA GPIO"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 8
 
-config CASE2_I2C_SCL_GPIO
+config ESPESP_I2C_SCL_GPIO
     int "I2C SCL GPIO"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 9
 
-config CASE2_I2C_PROBE_TIMEOUT_MS
+config ESPESP_I2C_PROBE_TIMEOUT_MS
     int "Probe timeout in ms"
     range 1 1000
     default 50
@@ -246,25 +460,25 @@ endmenu
 
 menu "Microphone module"
 
-config CASE2_MIC_BCLK_GPIO
+config ESPESP_MIC_BCLK_GPIO
     int "I2S microphone BCLK GPIO"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 4
 
-config CASE2_MIC_WS_GPIO
+config ESPESP_MIC_WS_GPIO
     int "I2S microphone WS/LRCLK GPIO"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 5
 
-config CASE2_MIC_DIN_GPIO
+config ESPESP_MIC_DIN_GPIO
     int "I2S microphone DATA input GPIO"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 6
 
-config CASE2_MIC_SAMPLE_RATE_HZ
+config ESPESP_MIC_SAMPLE_RATE_HZ
     int "I2S microphone sample rate"
     range 8000 48000
     default 16000
@@ -273,30 +487,30 @@ endmenu
 
 menu "Speaker module"
 
-config CASE2_SPK_BCLK_GPIO
+config ESPESP_SPK_BCLK_GPIO
     int "I2S speaker BCLK GPIO"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 10
 
-config CASE2_SPK_WS_GPIO
+config ESPESP_SPK_WS_GPIO
     int "I2S speaker WS/LRCLK GPIO"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 11
 
-config CASE2_SPK_DOUT_GPIO
+config ESPESP_SPK_DOUT_GPIO
     int "I2S speaker DATA output GPIO"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 12
 
-config CASE2_SPK_SAMPLE_RATE_HZ
+config ESPESP_SPK_SAMPLE_RATE_HZ
     int "I2S speaker sample rate"
     range 8000 48000
     default 16000
 
-config CASE2_SPK_TONE_HZ
+config ESPESP_SPK_TONE_HZ
     int "Sine tone frequency"
     range 100 3000
     default 440
@@ -305,31 +519,31 @@ endmenu
 
 menu "Display module"
 
-config CASE2_DISPLAY_SDA_GPIO
+config ESPESP_DISPLAY_SDA_GPIO
     int "Display I2C SDA GPIO"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 8
 
-config CASE2_DISPLAY_SCL_GPIO
+config ESPESP_DISPLAY_SCL_GPIO
     int "Display I2C SCL GPIO"
     range 0 48 if IDF_TARGET_ESP32S3
     range 0 39
     default 9
 
-config CASE2_DISPLAY_I2C_ADDR
+config ESPESP_DISPLAY_I2C_ADDR
     hex "Display I2C address"
     range 0x03 0x77
     default 0x3C
     help
         SSD1306 OLED modules commonly use 0x3C or 0x3D.
 
-config CASE2_DISPLAY_I2C_HZ
+config ESPESP_DISPLAY_I2C_HZ
     int "Display I2C clock"
     range 100000 400000
     default 400000
 
-config CASE2_DISPLAY_TIMEOUT_MS
+config ESPESP_DISPLAY_TIMEOUT_MS
     int "Display I2C timeout in ms"
     range 10 1000
     default 100

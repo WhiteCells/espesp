@@ -59,7 +59,7 @@ void app_common_print_banner(const app_case_t *selected_case)
     printf("============================================================\n");
     printf("module: %s (%s)\n", selected_case->title, selected_case->key);
     printf("配套文档: %s\n", selected_case->doc_path);
-    printf("切换模块: idf.py menuconfig -> Case2 ESP Learning -> Module selector\n");
+    printf("切换模块: idf.py menuconfig -> ESPESP Menu -> Module selector\n");
     printf("============================================================\n");
 }
 

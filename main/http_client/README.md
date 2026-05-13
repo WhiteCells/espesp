@@ -1,6 +1,30 @@
 # http_client
 
-## 模块接口
+## 使用方式
+
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> http_get: Wi-Fi + HTTP GET
+```
+
+配置 Wi-Fi 和 URL：
+
+```text
+ESPESP Menu
+  -> WiFi module
+ESPESP Menu
+  -> HTTP client module
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+## 当前模块已有接口
 
 ### `esp_err_t http_get_run(void)`
 
@@ -23,9 +47,9 @@
 字段说明：
 
 - `printed_bytes`：已经打印的响应体字节数。
-- `print_limit`：最多打印多少字节，来自 `CONFIG_CASE2_HTTP_PRINT_LIMIT`。
+- `print_limit`：最多打印多少字节，来自 `CONFIG_ESPESP_HTTP_PRINT_LIMIT`。
 
-## 使用的 ESP-IDF 接口和结构体
+## 常用接口说明
 
 ### `esp_http_client_config_t`
 
@@ -33,10 +57,10 @@ HTTP client 配置。
 
 本模块使用字段：
 
-- `url`：请求 URL，来自 `CONFIG_CASE2_HTTP_URL`。
+- `url`：请求 URL，来自 `CONFIG_ESPESP_HTTP_URL`。
 - `event_handler`：事件回调函数，本模块是 `http_event_handler`。
 - `user_data`：传给事件回调的用户上下文，本模块传 `&ctx`。
-- `timeout_ms`：请求超时时间，来自 `CONFIG_CASE2_HTTP_TIMEOUT_MS`。
+- `timeout_ms`：请求超时时间，来自 `CONFIG_ESPESP_HTTP_TIMEOUT_MS`。
 
 常见可扩展字段：
 
@@ -92,9 +116,9 @@ HTTP 事件回调参数。
 
 ## 可配置项
 
-- `CONFIG_CASE2_HTTP_URL`：请求地址。
-- `CONFIG_CASE2_HTTP_TIMEOUT_MS`：请求超时。
-- `CONFIG_CASE2_HTTP_PRINT_LIMIT`：最多打印响应体字节数。
+- `CONFIG_ESPESP_HTTP_URL`：请求地址。
+- `CONFIG_ESPESP_HTTP_TIMEOUT_MS`：请求超时。
+- `CONFIG_ESPESP_HTTP_PRINT_LIMIT`：最多打印响应体字节数。
 
 ## 注意事项
 

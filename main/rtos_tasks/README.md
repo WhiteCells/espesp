@@ -1,6 +1,28 @@
 # rtos_tasks
 
-## 模块接口
+## 使用方式
+
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> rtos_tasks: tasks and queue
+```
+
+可调参数：
+
+```text
+ESPESP Menu
+  -> FreeRTOS task module
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+## 当前模块已有接口
 
 ### `esp_err_t rtos_tasks_run(void)`
 
@@ -24,7 +46,7 @@
 - `sequence`：样本序号，每次 producer 生成样本后递增。
 - `uptime_ms`：生成样本时的系统运行时间，单位 ms。
 
-## 使用的 FreeRTOS 接口
+## 常用接口说明
 
 ### `QueueHandle_t xQueueCreate(UBaseType_t uxQueueLength, UBaseType_t uxItemSize)`
 
@@ -32,7 +54,7 @@
 
 参数：
 
-- `uxQueueLength`：队列可保存的元素个数，本模块来自 `CONFIG_CASE2_FREERTOS_QUEUE_LENGTH`。
+- `uxQueueLength`：队列可保存的元素个数，本模块来自 `CONFIG_ESPESP_FREERTOS_QUEUE_LENGTH`。
 - `uxItemSize`：单个元素大小，本模块是 `sizeof(sensor_sample_t)`。
 
 返回值：
@@ -73,8 +95,8 @@
 
 ## 可配置项
 
-- `CONFIG_CASE2_FREERTOS_QUEUE_LENGTH`：队列长度。
-- `CONFIG_CASE2_FREERTOS_PRODUCER_PERIOD_MS`：producer 生成样本周期。
+- `CONFIG_ESPESP_FREERTOS_QUEUE_LENGTH`：队列长度。
+- `CONFIG_ESPESP_FREERTOS_PRODUCER_PERIOD_MS`：producer 生成样本周期。
 
 ## 注意事项
 

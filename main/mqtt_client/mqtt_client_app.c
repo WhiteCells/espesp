@@ -1,4 +1,4 @@
-#include "mqtt_client_demo/mqtt_client_demo.h"
+#include "mqtt_client/mqtt_client_app.h"
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -18,7 +18,7 @@
 
 typedef struct {
     EventGroupHandle_t event_group;
-} mqtt_client_demo_context_t;
+} mqtt_client_context_t;
 
 static const char *TAG = "mqtt_client";
 
@@ -27,7 +27,7 @@ static void mqtt_event_handler(void *handler_args,
                                int32_t event_id,
                                void *event_data)
 {
-    mqtt_client_demo_context_t *ctx = (mqtt_client_demo_context_t *)handler_args;
+    mqtt_client_context_t *ctx = (mqtt_client_context_t *)handler_args;
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
     esp_mqtt_client_handle_t client = event->client;
 
@@ -38,8 +38,8 @@ static void mqtt_event_handler(void *handler_args,
         ESP_LOGI(TAG, "connected to broker");
         xEventGroupSetBits(ctx->event_group, MQTT_CONNECTED_BIT);
 
-        int msg_id = esp_mqtt_client_subscribe(client, CONFIG_CASE2_MQTT_CMD_TOPIC, 0);
-        ESP_LOGI(TAG, "subscribe topic=%s, msg_id=%d", CONFIG_CASE2_MQTT_CMD_TOPIC, msg_id);
+        int msg_id = esp_mqtt_client_subscribe(client, CONFIG_ESPESP_MQTT_CMD_TOPIC, 0);
+        ESP_LOGI(TAG, "subscribe topic=%s, msg_id=%d", CONFIG_ESPESP_MQTT_CMD_TOPIC, msg_id);
         break;
     }
     case MQTT_EVENT_DISCONNECTED:
@@ -87,16 +87,16 @@ static esp_err_t mqtt_publish_text(esp_mqtt_client_handle_t client,
     return ESP_OK;
 }
 
-esp_err_t mqtt_client_demo_run(void)
+esp_err_t mqtt_client_run(void)
 {
-    if (strlen(CONFIG_CASE2_MQTT_BROKER_URI) == 0) {
+    if (strlen(CONFIG_ESPESP_MQTT_BROKER_URI) == 0) {
         ESP_LOGE(TAG, "MQTT broker URI is empty. Run `idf.py menuconfig` to set it.");
         return ESP_ERR_INVALID_ARG;
     }
 
     ESP_ERROR_CHECK(wifi_station_connect());
 
-    mqtt_client_demo_context_t ctx = {
+    mqtt_client_context_t ctx = {
         .event_group = xEventGroupCreate(),
     };
     if (ctx.event_group == NULL) {
@@ -104,9 +104,9 @@ esp_err_t mqtt_client_demo_run(void)
     }
 
     const esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.uri = CONFIG_CASE2_MQTT_BROKER_URI,
-        .credentials.client_id = CONFIG_CASE2_MQTT_CLIENT_ID,
-        .session.keepalive = CONFIG_CASE2_MQTT_KEEPALIVE_SEC,
+        .broker.address.uri = CONFIG_ESPESP_MQTT_BROKER_URI,
+        .credentials.client_id = CONFIG_ESPESP_MQTT_CLIENT_ID,
+        .session.keepalive = CONFIG_ESPESP_MQTT_KEEPALIVE_SEC,
     };
 
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
@@ -125,7 +125,7 @@ esp_err_t mqtt_client_demo_run(void)
         return ret;
     }
 
-    ESP_LOGI(TAG, "connect broker=%s, client_id=%s", CONFIG_CASE2_MQTT_BROKER_URI, CONFIG_CASE2_MQTT_CLIENT_ID);
+    ESP_LOGI(TAG, "connect broker=%s, client_id=%s", CONFIG_ESPESP_MQTT_BROKER_URI, CONFIG_ESPESP_MQTT_CLIENT_ID);
     ret = esp_mqtt_client_start(client);
     if (ret != ESP_OK) {
         esp_mqtt_client_destroy(client);
@@ -137,7 +137,7 @@ esp_err_t mqtt_client_demo_run(void)
                                            MQTT_CONNECTED_BIT | MQTT_ERROR_BIT,
                                            pdFALSE,
                                            pdFALSE,
-                                           pdMS_TO_TICKS(CONFIG_CASE2_MQTT_CONNECT_TIMEOUT_MS));
+                                           pdMS_TO_TICKS(CONFIG_ESPESP_MQTT_CONNECT_TIMEOUT_MS));
     if ((bits & MQTT_CONNECTED_BIT) == 0) {
         ESP_LOGE(TAG, "MQTT connect timeout or error");
         esp_mqtt_client_stop(client);
@@ -146,11 +146,11 @@ esp_err_t mqtt_client_demo_run(void)
         return (bits & MQTT_ERROR_BIT) ? ESP_FAIL : ESP_ERR_TIMEOUT;
     }
 
-    ESP_ERROR_CHECK(mqtt_publish_text(client, CONFIG_CASE2_MQTT_STATUS_TOPIC, "online"));
+    ESP_ERROR_CHECK(mqtt_publish_text(client, CONFIG_ESPESP_MQTT_STATUS_TOPIC, "online"));
 
     uint32_t sequence = 0;
     while (true) {
-        vTaskDelay(pdMS_TO_TICKS(CONFIG_CASE2_MQTT_PUBLISH_PERIOD_MS));
+        vTaskDelay(pdMS_TO_TICKS(CONFIG_ESPESP_MQTT_PUBLISH_PERIOD_MS));
 
         bits = xEventGroupGetBits(ctx.event_group);
         if ((bits & MQTT_CONNECTED_BIT) == 0) {
@@ -162,10 +162,10 @@ esp_err_t mqtt_client_demo_run(void)
         snprintf(payload,
                  sizeof(payload),
                  "{\"client\":\"%s\",\"seq\":%" PRIu32 ",\"free_heap\":%" PRIu32 "}",
-                 CONFIG_CASE2_MQTT_CLIENT_ID,
+                 CONFIG_ESPESP_MQTT_CLIENT_ID,
                  sequence++,
                  esp_get_free_heap_size());
-        ESP_ERROR_CHECK(mqtt_publish_text(client, CONFIG_CASE2_MQTT_STATUS_TOPIC, payload));
+        ESP_ERROR_CHECK(mqtt_publish_text(client, CONFIG_ESPESP_MQTT_STATUS_TOPIC, payload));
     }
 
     return ESP_OK;

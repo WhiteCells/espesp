@@ -12,7 +12,7 @@ static const char *TAG = "display";
 static esp_err_t display_write_command(i2c_master_dev_handle_t device, uint8_t command)
 {
     uint8_t payload[] = { 0x00, command };
-    return i2c_master_transmit(device, payload, sizeof(payload), CONFIG_CASE2_DISPLAY_TIMEOUT_MS);
+    return i2c_master_transmit(device, payload, sizeof(payload), CONFIG_ESPESP_DISPLAY_TIMEOUT_MS);
 }
 
 static esp_err_t display_write_data(i2c_master_dev_handle_t device, const uint8_t *data, size_t length)
@@ -25,7 +25,7 @@ static esp_err_t display_write_data(i2c_master_dev_handle_t device, const uint8_
         ESP_RETURN_ON_ERROR(i2c_master_transmit(device,
                                                 payload,
                                                 chunk + 1,
-                                                CONFIG_CASE2_DISPLAY_TIMEOUT_MS),
+                                                CONFIG_ESPESP_DISPLAY_TIMEOUT_MS),
                             TAG,
                             "write OLED data");
         data += chunk;
@@ -94,8 +94,8 @@ esp_err_t display_run(void)
 {
     i2c_master_bus_config_t bus_config = {
         .i2c_port = I2C_NUM_0,
-        .sda_io_num = CONFIG_CASE2_DISPLAY_SDA_GPIO,
-        .scl_io_num = CONFIG_CASE2_DISPLAY_SCL_GPIO,
+        .sda_io_num = CONFIG_ESPESP_DISPLAY_SDA_GPIO,
+        .scl_io_num = CONFIG_ESPESP_DISPLAY_SCL_GPIO,
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
         .flags.enable_internal_pullup = true,
@@ -106,8 +106,8 @@ esp_err_t display_run(void)
 
     i2c_device_config_t device_config = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = CONFIG_CASE2_DISPLAY_I2C_ADDR,
-        .scl_speed_hz = CONFIG_CASE2_DISPLAY_I2C_HZ,
+        .device_address = CONFIG_ESPESP_DISPLAY_I2C_ADDR,
+        .scl_speed_hz = CONFIG_ESPESP_DISPLAY_I2C_HZ,
     };
 
     i2c_master_dev_handle_t device = NULL;
@@ -115,9 +115,9 @@ esp_err_t display_run(void)
     if (ret == ESP_OK) {
         ESP_LOGI(TAG,
                  "SSD1306 display: SDA=GPIO%d, SCL=GPIO%d, addr=0x%02x",
-                 CONFIG_CASE2_DISPLAY_SDA_GPIO,
-                 CONFIG_CASE2_DISPLAY_SCL_GPIO,
-                 CONFIG_CASE2_DISPLAY_I2C_ADDR);
+                 CONFIG_ESPESP_DISPLAY_SDA_GPIO,
+                 CONFIG_ESPESP_DISPLAY_SCL_GPIO,
+                 CONFIG_ESPESP_DISPLAY_I2C_ADDR);
         ret = display_init_ssd1306(device);
     }
     if (ret == ESP_OK) {

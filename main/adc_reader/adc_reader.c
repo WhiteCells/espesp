@@ -18,7 +18,7 @@ static bool adc_calibration_init(adc_cali_handle_t *out_handle)
 #if ADC_CALI_SCHEME_CURVE_FITTING_SUPPORTED
     adc_cali_curve_fitting_config_t curve_config = {
         .unit_id = ADC_UNIT_1,
-        .chan = CONFIG_CASE2_ADC_CHANNEL,
+        .chan = CONFIG_ESPESP_ADC_CHANNEL,
         .atten = ADC_ATTEN_DB_12,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
@@ -68,16 +68,16 @@ esp_err_t adc_reader_run(void)
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
     /* 单次采样模式适合低频传感器，周期由业务任务控制。 */
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, CONFIG_CASE2_ADC_CHANNEL, &channel_config));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, CONFIG_ESPESP_ADC_CHANNEL, &channel_config));
 
     adc_cali_handle_t cali_handle = NULL;
     bool calibrated = adc_calibration_init(&cali_handle);
 
-    ESP_LOGI(TAG, "read ADC1 channel %d every %d ms", CONFIG_CASE2_ADC_CHANNEL, CONFIG_CASE2_ADC_PERIOD_MS);
+    ESP_LOGI(TAG, "read ADC1 channel %d every %d ms", CONFIG_ESPESP_ADC_CHANNEL, CONFIG_ESPESP_ADC_PERIOD_MS);
 
     while (true) {
         int raw = 0;
-        ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, CONFIG_CASE2_ADC_CHANNEL, &raw));
+        ESP_ERROR_CHECK(adc_oneshot_read(adc_handle, CONFIG_ESPESP_ADC_CHANNEL, &raw));
 
         if (calibrated) {
             int voltage_mv = 0;
@@ -87,7 +87,7 @@ esp_err_t adc_reader_run(void)
             ESP_LOGI(TAG, "raw=%d", raw);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(CONFIG_CASE2_ADC_PERIOD_MS));
+        vTaskDelay(pdMS_TO_TICKS(CONFIG_ESPESP_ADC_PERIOD_MS));
     }
 
     adc_calibration_deinit(cali_handle);

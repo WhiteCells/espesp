@@ -1,6 +1,21 @@
 # system_info
 
-## 模块接口
+## 使用方式
+
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> system_info: chip/app/heap information
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+## 当前模块已有接口
 
 ### `esp_err_t system_info_run(void)`
 
@@ -13,7 +28,7 @@
 - `ESP_OK`：所有信息读取成功。
 - `esp_flash_get_size()` 或 `esp_read_mac()` 返回的错误。
 
-## 使用的 ESP-IDF 接口
+## 常用接口说明
 
 ### `const esp_app_desc_t *esp_app_get_description(void)`
 
@@ -25,7 +40,7 @@
 
 常用字段：
 
-- `project_name`：工程名，对应顶层 `project(case2)`。
+- `project_name`：工程名，对应顶层 `project(espesp)`。
 - `version`：应用版本，通常来自 git describe 或工程配置。
 - `idf_ver`：构建该固件使用的 ESP-IDF 版本。
 

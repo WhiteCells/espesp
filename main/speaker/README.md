@@ -1,6 +1,28 @@
 # speaker
 
-## 模块接口
+## 使用方式
+
+```text
+idf.py menuconfig
+  -> ESPESP Menu
+  -> Module selector
+  -> speaker: play I2S sine tone
+```
+
+可调参数：
+
+```text
+ESPESP Menu
+  -> Speaker module
+```
+
+然后执行：
+
+```sh
+idf.py build flash monitor
+```
+
+## 当前模块已有接口
 
 ### `esp_err_t speaker_run(void)`
 
@@ -38,7 +60,7 @@
 - `sample_count`：要生成的样本个数。
 - `phase`：相位计数器指针，函数会更新它以保证连续波形。
 
-## 使用的 ESP-IDF 接口和结构体
+## 常用接口说明
 
 ### `i2s_chan_config_t`
 
@@ -66,7 +88,7 @@
 
 本模块字段：
 
-- `clk_cfg`：采样率配置，来自 `CONFIG_CASE2_SPK_SAMPLE_RATE_HZ`。
+- `clk_cfg`：采样率配置，来自 `CONFIG_ESPESP_SPK_SAMPLE_RATE_HZ`。
 - `slot_cfg`：16-bit 单声道 Philips I2S。
 - `gpio_cfg`：BCLK、WS、DOUT 引脚。
 
@@ -86,9 +108,9 @@ slot 配置由 `I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2
 字段说明：
 
 - `mclk = I2S_GPIO_UNUSED`：多数 MAX98357A 类模块不需要 MCLK。
-- `bclk = CONFIG_CASE2_SPK_BCLK_GPIO`：bit clock。
-- `ws = CONFIG_CASE2_SPK_WS_GPIO`：word select/LRCLK。
-- `dout = CONFIG_CASE2_SPK_DOUT_GPIO`：音频数据输出到功放 DIN。
+- `bclk = CONFIG_ESPESP_SPK_BCLK_GPIO`：bit clock。
+- `ws = CONFIG_ESPESP_SPK_WS_GPIO`：word select/LRCLK。
+- `dout = CONFIG_ESPESP_SPK_DOUT_GPIO`：音频数据输出到功放 DIN。
 - `din = I2S_GPIO_UNUSED`：不接收数据。
 - `invert_flags`：本模块不反相。
 
@@ -106,11 +128,11 @@ slot 配置由 `I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(I2S_DATA_BIT_WIDTH_16BIT, I2
 
 ## 可配置项
 
-- `CONFIG_CASE2_SPK_BCLK_GPIO`：BCLK 引脚。
-- `CONFIG_CASE2_SPK_WS_GPIO`：WS/LRCLK 引脚。
-- `CONFIG_CASE2_SPK_DOUT_GPIO`：DATA 输出引脚。
-- `CONFIG_CASE2_SPK_SAMPLE_RATE_HZ`：采样率。
-- `CONFIG_CASE2_SPK_TONE_HZ`：正弦波频率。
+- `CONFIG_ESPESP_SPK_BCLK_GPIO`：BCLK 引脚。
+- `CONFIG_ESPESP_SPK_WS_GPIO`：WS/LRCLK 引脚。
+- `CONFIG_ESPESP_SPK_DOUT_GPIO`：DATA 输出引脚。
+- `CONFIG_ESPESP_SPK_SAMPLE_RATE_HZ`：采样率。
+- `CONFIG_ESPESP_SPK_TONE_HZ`：正弦波频率。
 
 ## 注意事项
 

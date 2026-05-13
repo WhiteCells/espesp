@@ -1,17 +1,17 @@
 # 09 i2c_scan: I2C 总线扫描
 
-## 学什么
+## 模块概览
 
 - `i2c_new_master_bus()` 创建 I2C master bus。
 - `i2c_master_probe()` 检查地址是否 ACK。
 - I2C 地址通常是 7-bit 地址。
 - SDA/SCL 需要上拉。
 
-## 怎么运行
+## 使用方式
 
 ```text
 idf.py menuconfig
-  -> Case2 ESP Learning
+  -> ESPESP Menu
   -> Module selector
   -> 09 i2c_scan
 ```
@@ -19,18 +19,31 @@ idf.py menuconfig
 可调参数：
 
 ```text
-Case2 ESP Learning
+ESPESP Menu
   -> I2C scan module
 ```
 
-## 看哪段代码
+## 源码位置
 
 - `main/i2c_scan/i2c_scan.c`
 
-## 接口介绍
+## 当前模块接口参考
 
 - `i2c_scan_run()`：扫描总线上的 7-bit 地址。
-- 常用接口：`i2c_new_master_bus()`、`i2c_master_probe()`、`i2c_del_master_bus()`。
+
+## 常用接口说明
+
+- `i2c_master_bus_config_t`：配置 I2C 端口、SDA/SCL 引脚、时钟源和内部上拉。
+- `i2c_new_master_bus()`：创建 I2C master bus。
+- `i2c_master_probe()`：向指定 7-bit 地址发送探测，判断是否 ACK。
+- `i2c_del_master_bus()`：删除 I2C master bus，释放驱动资源。
+- `pdMS_TO_TICKS()`：把扫描间隔或超时换算成 tick 时常会用到。
+
+## 配置项
+
+- `CONFIG_ESPESP_I2C_SDA_GPIO`：I2C SDA GPIO。
+- `CONFIG_ESPESP_I2C_SCL_GPIO`：I2C SCL GPIO。
+- `CONFIG_ESPESP_I2C_PROBE_TIMEOUT_MS`：单个地址探测超时，单位 ms。
 
 ## 接线
 
@@ -54,7 +67,7 @@ found device at 0x3c
 - 扫到地址只代表 ACK，不代表设备寄存器协议正确。
 - 长线或高速 I2C 更需要外部上拉。
 
-## 练习
+## 扩展方向
 
 - 接一个 OLED，观察常见地址 `0x3c`。
 - 换 SDA/SCL 引脚并重新扫描。
