@@ -16,7 +16,7 @@
 #include "sdkconfig.h"
 #include "wifi_station/wifi_station.h"
 
-#define WS_SERVER_HTTPD_SOCKET_RESERVE 3
+#define WS_SERVER_HANDSHAKE_SOCKET_RESERVE 2
 #define WS_SERVER_AUTH_HEADER_MAX 256
 #define WS_SERVER_BINARY_PREVIEW_BYTES 16
 
@@ -29,6 +29,8 @@ typedef struct {
 } websocket_server_context_t;
 
 static const char *TAG = "websocket_server";
+
+#if CONFIG_HTTPD_WS_SUPPORT
 
 static websocket_server_context_t *websocket_server_context(httpd_handle_t handle)
 {
@@ -57,7 +59,7 @@ static bool secure_equals(const char *left, const char *right)
 
 static size_t websocket_server_active_client_count(httpd_handle_t handle)
 {
-    int client_fds[CONFIG_ESPESP_WS_SERVER_MAX_CLIENTS + WS_SERVER_HTTPD_SOCKET_RESERVE];
+    int client_fds[CONFIG_ESPESP_WS_SERVER_MAX_CLIENTS + WS_SERVER_HANDSHAKE_SOCKET_RESERVE];
     size_t fd_count = sizeof(client_fds) / sizeof(client_fds[0]);
     esp_err_t ret = httpd_get_client_list(handle, &fd_count, client_fds);
     if (ret != ESP_OK) {
@@ -116,7 +118,7 @@ static esp_err_t websocket_server_broadcast_status(const websocket_server_contex
         return ESP_ERR_INVALID_ARG;
     }
 
-    int client_fds[CONFIG_ESPESP_WS_SERVER_MAX_CLIENTS + WS_SERVER_HTTPD_SOCKET_RESERVE];
+    int client_fds[CONFIG_ESPESP_WS_SERVER_MAX_CLIENTS + WS_SERVER_HANDSHAKE_SOCKET_RESERVE];
     size_t fd_count = sizeof(client_fds) / sizeof(client_fds[0]);
     esp_err_t ret = httpd_get_client_list(ctx->server, &fd_count, client_fds);
     if (ret != ESP_OK) {
@@ -343,44 +345,60 @@ static esp_err_t websocket_server_frame_handler(httpd_req_t *req)
     return ret;
 }
 
+#endif
+
 esp_err_t websocket_server_run(void)
 {
+#if !CONFIG_HTTPD_WS_SUPPORT
+    ESP_LOGE(TAG, "ESP-IDF HTTPD WebSocket support is disabled. Enable CONFIG_HTTPD_WS_SUPPORT.");
+    return ESP_ERR_NOT_SUPPORTED;
+#else
     if (CONFIG_ESPESP_WS_SERVER_PATH[0] == '\0' || CONFIG_ESPESP_WS_SERVER_PATH[0] != '/') {
         ESP_LOGE(TAG, "websocket path must start with '/'");
         return ESP_ERR_INVALID_ARG;
     }
 
-    ESP_ERROR_CHECK(wifi_station_connect());
+    esp_err_t ret = wifi_station_connect();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "failed to connect Wi-Fi before starting websocket server: %s", esp_err_to_name(ret));
+        return ret;
+    }
 
-    websocket_server_context_t ctx = {
-        .server = NULL,
-        .path = CONFIG_ESPESP_WS_SERVER_PATH,
-        .auth_token = CONFIG_ESPESP_WS_SERVER_AUTH_TOKEN,
-        .publish_period_ms = CONFIG_ESPESP_WS_SERVER_PUBLISH_PERIOD_MS,
-        .max_clients = CONFIG_ESPESP_WS_SERVER_MAX_CLIENTS,
-    };
+    websocket_server_context_t *ctx = calloc(1, sizeof(*ctx));
+    if (ctx == NULL) {
+        ESP_LOGE(TAG, "failed to allocate websocket server context");
+        return ESP_ERR_NO_MEM;
+    }
+
+    ctx->path = CONFIG_ESPESP_WS_SERVER_PATH;
+    ctx->auth_token = CONFIG_ESPESP_WS_SERVER_AUTH_TOKEN;
+    ctx->publish_period_ms = CONFIG_ESPESP_WS_SERVER_PUBLISH_PERIOD_MS;
+    ctx->max_clients = CONFIG_ESPESP_WS_SERVER_MAX_CLIENTS;
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = CONFIG_ESPESP_WS_SERVER_PORT;
-    config.max_open_sockets = CONFIG_ESPESP_WS_SERVER_MAX_CLIENTS + WS_SERVER_HTTPD_SOCKET_RESERVE;
+    config.ctrl_port = CONFIG_ESPESP_WS_SERVER_CTRL_PORT;
+    config.max_open_sockets = CONFIG_ESPESP_WS_SERVER_MAX_CLIENTS + WS_SERVER_HANDSHAKE_SOCKET_RESERVE;
     config.lru_purge_enable = true;
     config.recv_wait_timeout = CONFIG_ESPESP_LAN_SERVICE_RECV_TIMEOUT_SEC;
     config.send_wait_timeout = CONFIG_ESPESP_LAN_SERVICE_SEND_TIMEOUT_SEC;
     config.uri_match_fn = httpd_uri_match_wildcard;
     config.close_fn = websocket_server_close_fn;
-    config.global_user_ctx = &ctx;
+    config.global_user_ctx = ctx;
+    config.global_user_ctx_free_fn = free;
 
     httpd_handle_t server = NULL;
-    esp_err_t ret = httpd_start(&server, &config);
+    ret = httpd_start(&server, &config);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "failed to start websocket server: %s", esp_err_to_name(ret));
+        free(ctx);
         return ret;
     }
 
-    ctx.server = server;
+    ctx->server = server;
 
     const httpd_uri_t route = {
-        .uri = ctx.path,
+        .uri = ctx->path,
         .method = HTTP_GET,
         .handler = websocket_server_frame_handler,
         .user_ctx = NULL,
@@ -401,10 +419,10 @@ esp_err_t websocket_server_run(void)
     ESP_LOGI(TAG,
              "websocket server started on port %d, path=%s, max_clients=%zu, publish_period_ms=%" PRIu32,
              CONFIG_ESPESP_WS_SERVER_PORT,
-             ctx.path,
-             ctx.max_clients,
-             ctx.publish_period_ms);
-    if (ctx.auth_token != NULL && ctx.auth_token[0] != '\0') {
+             ctx->path,
+             ctx->max_clients,
+             ctx->publish_period_ms);
+    if (ctx->auth_token != NULL && ctx->auth_token[0] != '\0') {
         ESP_LOGI(TAG, "websocket auth is enabled with Authorization: Bearer <token>");
     } else {
         ESP_LOGI(TAG, "websocket auth is disabled");
@@ -412,17 +430,18 @@ esp_err_t websocket_server_run(void)
 
     uint32_t sequence = 0;
     while (true) {
-        vTaskDelay(pdMS_TO_TICKS(ctx.publish_period_ms));
+        vTaskDelay(pdMS_TO_TICKS(ctx->publish_period_ms));
 
-        if (ctx.server == NULL) {
+        if (ctx->server == NULL) {
             continue;
         }
 
-        ret = websocket_server_broadcast_status(&ctx, sequence++);
+        ret = websocket_server_broadcast_status(ctx, sequence++);
         if (ret != ESP_OK) {
             ESP_LOGW(TAG, "status broadcast failed: %s", esp_err_to_name(ret));
         }
     }
 
     return ESP_OK;
+#endif
 }

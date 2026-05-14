@@ -1,5 +1,16 @@
 menu "ESPESP Menu"
 
+config ESPESP_HTTPD_WEBSOCKET_SUPPORT
+    bool
+    default y
+    select HTTPD_WS_SUPPORT
+    select HTTPD_WS_PRE_HANDSHAKE_CB_SUPPORT
+    select HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT
+    help
+        websocket_server.c is compiled with the app component even when another
+        module is selected, so the ESP-IDF HTTP server WebSocket structs and
+        APIs must always be available to this project.
+
 choice ESPESP_SELECTED_MODULE
     prompt "Module selector"
     default ESPESP_MODULE_SYSTEM_INFO
@@ -55,6 +66,9 @@ config ESPESP_MODULE_HTTPS_SERVER
 
 config ESPESP_MODULE_WEBSOCKET_SERVER
     bool "websocket_server: WebSocket upgrade service"
+    select HTTPD_WS_SUPPORT
+    select HTTPD_WS_PRE_HANDSHAKE_CB_SUPPORT
+    select HTTPD_WS_POST_HANDSHAKE_CB_SUPPORT
 
 config ESPESP_MODULE_WEBSOCKET_CLIENT
     bool "websocket_client: Wi-Fi + WebSocket client"
@@ -257,6 +271,14 @@ config ESPESP_WS_SERVER_PORT
     int "WebSocket server port"
     range 1 65535
     default 8080
+
+config ESPESP_WS_SERVER_CTRL_PORT
+    int "WebSocket server control port"
+    range 1 65535
+    default 32770
+    help
+        Internal control socket used by esp_http_server. Keep it different
+        from the public WebSocket server port and the HTTP/HTTPS control ports.
 
 config ESPESP_WS_SERVER_PATH
     string "WebSocket path"
