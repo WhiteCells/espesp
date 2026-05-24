@@ -12,13 +12,21 @@
 #include "microphone/microphone.h"
 #include "mqtt_client/mqtt_client_app.h"
 #include "nvs_counter/nvs_counter.h"
+#include "pcm_stream/pcm_stream.h"
 #include "rtos_tasks/rtos_tasks.h"
 #include "speaker/speaker.h"
+#include "speaker_client/speaker_client.h"
 #include "system_info/system_info.h"
 #include "websocket_client/websocket_client.h"
 #include "websocket_server/websocket_server.h"
 #include "uart_echo/uart_echo.h"
 #include "wifi_station/wifi_station.h"
+
+#if CONFIG_ESPESP_PCM_STREAM_TRANSPORT_UDP
+#define PCM_STREAM_NEEDS_WIFI true
+#else
+#define PCM_STREAM_NEEDS_WIFI false
+#endif
 
 /* The registry keeps app_main small and makes each feature folder independent. */
 static const app_case_t s_cases[] = {
@@ -103,11 +111,27 @@ static const app_case_t s_cases[] = {
         .runs_forever = true,
     },
     {
+        .key = "pcm_stream",
+        .title = "PCM 音频流到电脑",
+        .doc_path = "docs/modules/16_pcm_stream.md",
+        .run = pcm_stream_run,
+        .needs_wifi = PCM_STREAM_NEEDS_WIFI,
+        .runs_forever = true,
+    },
+    {
         .key = "speaker",
         .title = "I2S 扬声器输出",
         .doc_path = "docs/modules/11_speaker.md",
         .run = speaker_run,
         .needs_wifi = false,
+        .runs_forever = true,
+    },
+    {
+        .key = "speaker_client",
+        .title = "WebSocket 音频播放客户端",
+        .doc_path = "docs/modules/17_speaker_client.md",
+        .run = speaker_client_run,
+        .needs_wifi = true,
         .runs_forever = true,
     },
     {
@@ -191,20 +215,24 @@ const app_case_t *app_registry_selected(void)
     return &s_cases[8];
 #elif CONFIG_ESPESP_MODULE_MICROPHONE
     return &s_cases[9];
-#elif CONFIG_ESPESP_MODULE_SPEAKER
+#elif CONFIG_ESPESP_MODULE_PCM_STREAM
     return &s_cases[10];
-#elif CONFIG_ESPESP_MODULE_DISPLAY
+#elif CONFIG_ESPESP_MODULE_SPEAKER
     return &s_cases[11];
-#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
+#elif CONFIG_ESPESP_MODULE_SPEAKER_CLIENT
     return &s_cases[12];
-#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
+#elif CONFIG_ESPESP_MODULE_DISPLAY
     return &s_cases[13];
-#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
+#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
     return &s_cases[14];
-#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
+#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
     return &s_cases[15];
-#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
     return &s_cases[16];
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
+    return &s_cases[17];
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+    return &s_cases[18];
 #else
     return &s_cases[0];
 #endif

@@ -31,6 +31,8 @@ Wi-Fi、HTTP、WebSocket、麦克风、扬声器、显示屏等模块还需要�
 | 13 | `mqtt_client` | Wi-Fi 后连接 MQTT、发布状态、订阅命令 | `main/mqtt_client/mqtt_client_app.c` |
 | 14 | `http_server` | 局域网 HTTP 服务、Bearer 鉴权、状态与控制 API | `main/http_server/http_server.c` |
 | 15 | `https_server` | 局域网 HTTPS 服务、NVS 证书、TLS 加密 | `main/https_server/https_server.c` |
+| 16 | `pcm_stream` | I2S 麦克风 PCM 通过 UART/UDP 传到电脑并写 WAV | `main/pcm_stream/pcm_stream.c` |
+| 17 | `speaker_client` | 通过 WebSocket 接收电脑端 WAV 音频流并用 I2S 播放 | `main/speaker_client/speaker_client.c` |
 | 26a | `websocket_server` | WebSocket 升级、文本/二进制帧、状态推送、可选鉴权 | `main/websocket_server/websocket_server.c` |
 | 26b | `websocket_client` | 主动连接 WebSocket server、发送状态、接收推送、可选鉴权 | `main/websocket_client/websocket_client.c` |
 

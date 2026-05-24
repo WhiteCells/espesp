@@ -49,8 +49,14 @@ config ESPESP_MODULE_I2C_SCAN
 config ESPESP_MODULE_MICROPHONE
     bool "microphone: read I2S microphone frames"
 
+config ESPESP_MODULE_PCM_STREAM
+    bool "pcm_stream: stream microphone PCM to computer"
+
 config ESPESP_MODULE_SPEAKER
     bool "speaker: play I2S sine tone"
+
+config ESPESP_MODULE_SPEAKER_CLIENT
+    bool "speaker_client: Wi-Fi + WebSocket audio playback"
 
 config ESPESP_MODULE_DISPLAY
     bool "display: write SSD1306 OLED pattern"
@@ -507,6 +513,104 @@ config ESPESP_MIC_SAMPLE_RATE_HZ
 
 endmenu
 
+menu "PCM stream module"
+
+choice ESPESP_PCM_STREAM_TRANSPORT
+    prompt "PCM stream transport"
+    default ESPESP_PCM_STREAM_TRANSPORT_UART
+    help
+        UART is the simplest flash-free path when your computer has a USB-UART
+        adapter connected to the ESP TX pin. UDP uses Wi-Fi and sends packets
+        to a Python recorder listening on your computer.
+
+config ESPESP_PCM_STREAM_TRANSPORT_UART
+    bool "UART"
+
+config ESPESP_PCM_STREAM_TRANSPORT_UDP
+    bool "Wi-Fi UDP"
+
+endchoice
+
+config ESPESP_PCM_UART_PORT_NUM
+    int "PCM UART port number"
+    range 0 2
+    default 1
+
+config ESPESP_PCM_UART_BAUD_RATE
+    int "PCM UART baud rate"
+    range 1200 3000000
+    default 921600
+    help
+        16 kHz mono 16-bit PCM needs about 256 kbit/s before framing overhead.
+        921600 baud leaves enough margin for continuous recording.
+
+config ESPESP_PCM_UART_USE_CUSTOM_PINS
+    bool "Use custom PCM UART TX/RX GPIO pins"
+    default y
+
+config ESPESP_PCM_UART_TX_GPIO
+    int "PCM UART TX GPIO"
+    range 0 48 if IDF_TARGET_ESP32S3
+    range 0 39
+    default 17
+
+config ESPESP_PCM_UART_RX_GPIO
+    int "PCM UART RX GPIO"
+    range 0 48 if IDF_TARGET_ESP32S3
+    range 0 39
+    default 18
+
+config ESPESP_PCM_UDP_HOST
+    string "UDP recorder IPv4 address"
+    default "255.255.255.255"
+    help
+        Use 255.255.255.255 to broadcast to the local Wi-Fi/LAN, which is the
+        easiest way to avoid choosing the wrong computer IP. You can also set
+        this to the computer's LAN IPv4 address for unicast. Do not use
+        127.0.0.1 from ESP32.
+
+config ESPESP_PCM_UDP_PORT
+    int "Computer UDP port"
+    range 1 65535
+    default 8765
+
+config ESPESP_PCM_FRAME_SAMPLES
+    int "PCM samples per packet"
+    range 64 512
+    default 128
+    help
+        Smaller packets reduce UDP/lwIP memory pressure. 128 samples at
+        16 kHz is 8 ms of audio and keeps each packet below 300 bytes.
+
+choice ESPESP_PCM_INPUT_SLOT
+    prompt "PCM input I2S slot"
+    default ESPESP_PCM_INPUT_SLOT_LEFT
+    help
+        Select the I2S slot used by the microphone. Only one slot is sent as
+        mono PCM. Enabling both slots would double the recorded sample count
+        while the WAV header still says 16 kHz, making a 10 second recording
+        play for about 20 seconds.
+
+config ESPESP_PCM_INPUT_SLOT_LEFT
+    bool "Left"
+
+config ESPESP_PCM_INPUT_SLOT_RIGHT
+    bool "Right"
+
+endchoice
+
+config ESPESP_PCM_SAMPLE_SHIFT_BITS
+    int "PCM sample right shift bits"
+    range 8 16
+    default 12
+    help
+        Controls how 32-bit I2S microphone samples are scaled down to 16-bit
+        WAV PCM. Lower values are louder and may clip; higher values are
+        quieter. Use 12 as a balanced starting point, 10 or 11 if recordings
+        are too quiet, and 13 or 14 if they still sound clipped.
+
+endmenu
+
 menu "Speaker module"
 
 config ESPESP_SPK_BCLK_GPIO
@@ -536,6 +640,68 @@ config ESPESP_SPK_TONE_HZ
     int "Sine tone frequency"
     range 100 3000
     default 440
+
+endmenu
+
+menu "Speaker client module"
+
+config ESPESP_SPEAKER_CLIENT_URI
+    string "speaker_server WebSocket URI"
+    default "ws://192.168.1.23:8082/audio"
+    help
+        Use your computer's LAN IP when testing with server/speaker_server/.
+        Do not use 127.0.0.1 from the ESP32.
+
+config ESPESP_SPEAKER_CLIENT_AUTH_TOKEN
+    string "Bearer token"
+    default ""
+    help
+        Leave empty for open endpoints. When set, the client sends
+        Authorization: Bearer <token> during the handshake.
+
+config ESPESP_SPEAKER_CLIENT_STATUS_PERIOD_MS
+    int "Status publish period in ms"
+    range 1000 60000
+    default 5000
+
+config ESPESP_SPEAKER_CLIENT_CONNECT_TIMEOUT_MS
+    int "Connect timeout in ms"
+    range 1000 60000
+    default 10000
+
+config ESPESP_SPEAKER_CLIENT_NETWORK_TIMEOUT_MS
+    int "Network operation timeout in ms"
+    range 1000 30000
+    default 5000
+
+config ESPESP_SPEAKER_CLIENT_RECONNECT_TIMEOUT_MS
+    int "Reconnect delay in ms"
+    range 1000 60000
+    default 10000
+
+config ESPESP_SPEAKER_CLIENT_PING_INTERVAL_SEC
+    int "Ping interval in seconds"
+    range 1 300
+    default 10
+
+config ESPESP_SPEAKER_CLIENT_BUFFER_SIZE
+    int "Receive buffer size"
+    range 512 8192
+    default 2048
+    help
+        The Python speaker_server defaults to 1024-byte PCM chunks. Larger
+        buffers reduce WebSocket fragmentation, while fragmented chunks are
+        still handled safely by the client.
+
+config ESPESP_SPEAKER_CLIENT_TASK_STACK_SIZE
+    int "WebSocket client task stack size"
+    range 4096 24576
+    default 8192
+
+config ESPESP_SPEAKER_CLIENT_I2S_WRITE_TIMEOUT_MS
+    int "I2S write timeout in ms"
+    range 100 5000
+    default 1000
 
 endmenu
 

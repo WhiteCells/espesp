@@ -151,3 +151,50 @@ python -m ws_client --listen-only --count 0
 python -m ws_client --send-only --payload ping
 python -m ws_client ws://127.0.0.1:8080/ws --binary --payload hello
 ```
+
+## PCM Recorder
+
+Use this recorder with the ESP32 `pcm_stream` module. It writes incoming PCM
+packets to a `.wav` file on the computer so the ESP32 does not need to write
+audio to flash.
+
+UART:
+
+```bash
+cd server
+pip install -e .
+python -m pcm_recorder uart /dev/ttyUSB0 out.wav --baud 921600 --seconds 10
+```
+
+UDP:
+
+```bash
+cd server
+python -m pcm_recorder udp out.wav --bind 0.0.0.0 --port 8765 --seconds 10
+```
+
+For UDP mode, leave `ESPESP_PCM_UDP_HOST` as `255.255.255.255` first to
+broadcast on the local Wi-Fi/LAN. After the recorder prints a local IPv4
+candidate and receives packets, you can switch the ESP target to that address
+for unicast.
+
+## Speaker Server
+
+Use this server with the ESP32 `speaker_client` module. It streams a local PCM
+WAV file over WebSocket as `pcm_s16le` mono chunks and sends JSON metadata
+before and after the binary audio stream.
+
+```bash
+cd server
+python -m speaker_server input.wav --host 0.0.0.0 --port 8082 --path /audio --sample-rate 16000
+```
+
+Use your computer's LAN IP in ESP32 menuconfig:
+
+```text
+ws://192.168.1.23:8082/audio
+```
+
+The input WAV sample rate must match the ESP32 speaker sample rate. The server
+can downmix multi-channel PCM WAV files to mono and convert 8/24/32-bit PCM WAV
+samples to 16-bit, but it does not resample MP3, FLAC, or mismatched WAV files.

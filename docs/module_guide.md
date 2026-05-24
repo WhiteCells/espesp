@@ -46,6 +46,7 @@ ESPESP Menu
   -> WebSocket server module
   -> WebSocket client module
   -> MQTT client module
+  -> Speaker client module
 ```
 
 ADC：
@@ -74,7 +75,9 @@ ESPESP Menu
 ```text
 ESPESP Menu
   -> Microphone module
+  -> PCM stream module
   -> Speaker module
+  -> Speaker client module
   -> Display module
 ```
 
@@ -129,6 +132,20 @@ I2S 麦克风或扬声器没有数据：
 - 确认 BCLK、WS/LRCLK、DIN/DOUT 引脚和模块方向。
 - 确认供电电压符合模块要求，并且 GND 共地。
 - 麦克风的左右声道选择脚可能影响数据输出。
+
+speaker_client 无声或失真：
+
+- 先确认 `speaker` 正弦波模块能正常发声。
+- 服务端 WAV 采样率必须等于 `CONFIG_ESPESP_SPK_SAMPLE_RATE_HZ`，默认 16000 Hz。
+- ESP32 端 URI 要填电脑局域网 IP，例如 `ws://192.168.1.23:8082/audio`，不要填 `127.0.0.1`。
+- 串口日志里的 `audio_start` 应显示 `format=pcm_s16le channels=1 bits=16`。
+
+PCM stream 录不到 WAV：
+
+- UART 模式建议使用 UART1/UART2，不要和 monitor 共用 UART0。
+- 电脑端 `--baud` 要和 `ESPESP_PCM_UART_BAUD_RATE` 一致。
+- UDP 模式先启动 `python -m pcm_recorder udp out.wav`，再启动 ESP 模块。
+- UDP host 要填电脑的局域网 IPv4 地址，不要填 `127.0.0.1`。
 
 电脑访问 ESP32 LAN server 失败：
 

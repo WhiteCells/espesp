@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "amqtt>=0.11.3",
     "flask>=3.1.3",
+    "pyserial>=3.5",
     "websockets>=15.0.1",
 ]
 
@@ -15,5 +16,7 @@ espesp-http-client = "http_client.client:main"
 espesp-http-server = "http_server.app:main"
 espesp-mqtt-broker = "mqtt_broker.server:main"
 espesp-mqtt-client = "mqtt_client.client:main"
+espesp-pcm-recorder = "pcm_recorder.recorder:main"
+espesp-speaker-server = "speaker_server.server:main"
 espesp-ws-client = "ws_client.client:main"
 espesp-ws-server = "ws_server.server:main"

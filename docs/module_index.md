@@ -67,7 +67,9 @@ NVS 适合保存少量配置，例如 Wi-Fi 配网结果、设备编号、运行
 - `uart_echo`：串口读写。
 - `i2c_scan`：确认 I2C 设备地址。
 - `microphone`：读取 I2S 麦克风音频帧。
+- `pcm_stream`：把 I2S 麦克风 PCM 通过 UART 或 UDP 传到电脑写 WAV。
 - `speaker`：通过 I2S 数字功放输出声音。
+- `speaker_client`：通过 WebSocket 接收电脑端 WAV 音频流并用 I2S 播放。
 - `display`：通过 I2C 写 SSD1306 OLED。
 
 ## 6. Wi-Fi 与事件模型
@@ -97,11 +99,13 @@ HTTP 只适合受控局域网调试；需要传输控制命令或敏感状态时
 - `https_server`
 - `websocket_server`
 - `websocket_client`
+- `speaker_client`
 - 源码：`main/http_client/http_get.c`
 - 源码：`main/http_server/http_server.c`
 - 源码：`main/https_server/https_server.c`
 - 源码：`main/websocket_server/websocket_server.c`
 - 源码：`main/websocket_client/websocket_client.c`
+- 源码：`main/speaker_client/speaker_client.c`
 
 ## 8. WebSocket
 
@@ -112,8 +116,10 @@ WebSocket 适合浏览器和桌面客户端与设备做实时双向通信。它�
 
 - `websocket_server`
 - `websocket_client`
+- `speaker_client`
 - 源码：`main/websocket_server/websocket_server.c`
 - 源码：`main/websocket_client/websocket_client.c`
+- 源码：`main/speaker_client/speaker_client.c`
 
 ## 9. MQTT Client
 

@@ -19,7 +19,9 @@ idf_component_register(
         "uart_echo/uart_echo.c"
         "i2c_scan/i2c_scan.c"
         "microphone/microphone.c"
+        "pcm_stream/pcm_stream.c"
         "speaker/speaker.c"
+        "speaker_client/speaker_client.c"
         "display/display.c"
     PRIV_REQUIRES
         esp_adc
@@ -42,6 +44,7 @@ idf_component_register(
         freertos
         heap
         log
+        lwip
         nvs_flash
         spi_flash
     INCLUDE_DIRS "."

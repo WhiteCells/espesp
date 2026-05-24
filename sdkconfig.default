@@ -1109,6 +1109,14 @@ CONFIG_ESPESP_MIC_SAMPLE_RATE_HZ=16000
 # end of Microphone module
 
 #
+# PCM stream module
+#
+CONFIG_ESPESP_PCM_INPUT_SLOT_LEFT=y
+# CONFIG_ESPESP_PCM_INPUT_SLOT_RIGHT is not set
+CONFIG_ESPESP_PCM_SAMPLE_SHIFT_BITS=12
+# end of PCM stream module
+
+#
 # Speaker module
 #
 CONFIG_ESPESP_SPK_BCLK_GPIO=10
