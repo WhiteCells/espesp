@@ -1,0 +1,34 @@
+[project]
+name = "voice-server"
+version = "0.1.0"
+description = "Full-duplex WebSocket voice bridge for Qwen-ASR and VoxCPM2."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "httpx>=0.27.0",
+    "pydantic-settings>=2.6.0",
+    "python-multipart>=0.0.9",
+    "sounddevice>=0.5.5",
+    "uvicorn[standard]>=0.30.0",
+    "websockets>=13.0",
+]
+
+[project.scripts]
+voice-server = "voice_server.server.cli:main"
+voice-client = "voice_server.client.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.uv]
+package = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
