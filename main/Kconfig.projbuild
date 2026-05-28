@@ -58,6 +58,9 @@ config ESPESP_MODULE_SPEAKER
 config ESPESP_MODULE_SPEAKER_CLIENT
     bool "speaker_client: Wi-Fi + WebSocket audio playback"
 
+config ESPESP_MODULE_VOICE_CLIENT
+    bool "voice_client: microphone -> voice-server -> speaker"
+
 config ESPESP_MODULE_DISPLAY
     bool "display: write SSD1306 OLED pattern"
 
@@ -700,6 +703,146 @@ config ESPESP_SPEAKER_CLIENT_TASK_STACK_SIZE
 
 config ESPESP_SPEAKER_CLIENT_I2S_WRITE_TIMEOUT_MS
     int "I2S write timeout in ms"
+    range 100 5000
+    default 1000
+
+endmenu
+
+menu "Voice client module"
+
+config ESPESP_VOICE_CLIENT_URI
+    string "voice-server WebSocket URI"
+    default "ws://192.168.1.23:8765/ws"
+    help
+        Use your computer's LAN IP when testing with server/voice-server/.
+        Do not use 127.0.0.1 from the ESP32.
+
+config ESPESP_VOICE_CLIENT_AUTH_TOKEN
+    string "Bearer token"
+    default ""
+    help
+        Leave empty for open endpoints. When set, the client sends
+        Authorization: Bearer <token> during the handshake.
+
+config ESPESP_VOICE_CLIENT_INPUT_SAMPLE_RATE_HZ
+    int "Input PCM sample rate"
+    range 8000 48000
+    default 48000
+    help
+        Sample rate declared to voice-server in the start event and used for
+        the I2S microphone clock. It must match the actual PCM bytes sent by
+        the ESP32. The bundled voice-server example currently uses 48000 Hz.
+
+config ESPESP_VOICE_CLIENT_FRAME_MS
+    int "Microphone frame duration in ms"
+    range 20 100
+    default 40
+    help
+        Each WebSocket binary frame contains this much raw PCM audio. The
+        voice-server docs recommend 20 ms to 100 ms for real-time microphone
+        streaming.
+
+config ESPESP_VOICE_CLIENT_SEGMENT_MS
+    int "ASR segment duration in ms"
+    range 500 10000
+    default 1500
+    help
+        Sent as start.segment_seconds. Smaller values reduce latency but cause
+        more ASR requests.
+
+choice ESPESP_VOICE_CLIENT_MIC_SLOT
+    prompt "Voice client microphone I2S slot"
+    default ESPESP_VOICE_CLIENT_MIC_SLOT_LEFT
+    help
+        Select the I2S slot used by the microphone. Only one slot is sent as
+        mono PCM.
+
+config ESPESP_VOICE_CLIENT_MIC_SLOT_LEFT
+    bool "Left"
+
+config ESPESP_VOICE_CLIENT_MIC_SLOT_RIGHT
+    bool "Right"
+
+endchoice
+
+config ESPESP_VOICE_CLIENT_MIC_SAMPLE_SHIFT_BITS
+    int "Microphone sample right shift bits"
+    range 8 16
+    default 12
+    help
+        Controls how 32-bit I2S microphone samples are scaled down to 16-bit
+        PCM. Lower values are louder and may clip; higher values are quieter.
+
+config ESPESP_VOICE_CLIENT_ASR_LANGUAGE
+    string "ASR language hint"
+    default "zh"
+    help
+        Sent as start.asr.language. Leave empty to omit this override.
+
+config ESPESP_VOICE_CLIENT_TTS_VOICE
+    string "TTS voice override"
+    default "zh1_voice"
+    help
+        Sent as start.tts.voice. Leave empty to use the server default voice.
+
+config ESPESP_VOICE_CLIENT_TTS_VOLUME_PERCENT
+    int "TTS playback volume percent"
+    range 10 100
+    default 60
+    help
+        Digital gain applied to server TTS PCM before writing to I2S. Lower
+        this value if playback is too loud, distorted, or clipping.
+
+config ESPESP_VOICE_CLIENT_TTS_LIMIT_PERCENT
+    int "TTS soft limit percent"
+    range 50 100
+    default 90
+    help
+        Peak limiter applied after TTS volume scaling. Values below 100 leave
+        headroom for I2S amplifiers and small speakers.
+
+config ESPESP_VOICE_CLIENT_PAUSE_MIC_DURING_TTS
+    bool "Pause upstream microphone while TTS is playing"
+    default y
+    help
+        Keeps the speaker output from being immediately captured and sent back
+        to ASR on simple half-duplex hardware.
+
+config ESPESP_VOICE_CLIENT_CONNECT_TIMEOUT_MS
+    int "Connect timeout in ms"
+    range 1000 60000
+    default 10000
+
+config ESPESP_VOICE_CLIENT_NETWORK_TIMEOUT_MS
+    int "Network operation timeout in ms"
+    range 1000 30000
+    default 5000
+
+config ESPESP_VOICE_CLIENT_RECONNECT_TIMEOUT_MS
+    int "Reconnect delay in ms"
+    range 1000 60000
+    default 10000
+
+config ESPESP_VOICE_CLIENT_PING_INTERVAL_SEC
+    int "Ping interval in seconds"
+    range 1 300
+    default 10
+
+config ESPESP_VOICE_CLIENT_BUFFER_SIZE
+    int "WebSocket receive buffer size"
+    range 512 16384
+    default 4096
+    help
+        TTS binary frames may be fragmented by this buffer; the client handles
+        fragmentation and keeps 16-bit PCM samples aligned.
+
+config ESPESP_VOICE_CLIENT_TASK_STACK_SIZE
+    int "WebSocket client task stack size"
+    range 6144 32768
+    default 12288
+
+config ESPESP_VOICE_CLIENT_I2S_WRITE_TIMEOUT_MS
+    int "I2S speaker write timeout in ms"
     range 100 5000
     default 1000
 

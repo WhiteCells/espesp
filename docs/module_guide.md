@@ -47,6 +47,7 @@ ESPESP Menu
   -> WebSocket client module
   -> MQTT client module
   -> Speaker client module
+  -> Voice client module
 ```
 
 ADC：
@@ -78,6 +79,7 @@ ESPESP Menu
   -> PCM stream module
   -> Speaker module
   -> Speaker client module
+  -> Voice client module
   -> Display module
 ```
 
@@ -139,6 +141,16 @@ speaker_client 无声或失真：
 - 服务端 WAV 采样率必须等于 `CONFIG_ESPESP_SPK_SAMPLE_RATE_HZ`，默认 16000 Hz。
 - ESP32 端 URI 要填电脑局域网 IP，例如 `ws://192.168.1.23:8082/audio`，不要填 `127.0.0.1`。
 - 串口日志里的 `audio_start` 应显示 `format=pcm_s16le channels=1 bits=16`。
+
+voice_client 连不上或无声：
+
+- 先启动 `server/voice-server`，并确认电脑和 ESP32 在同一个局域网。
+- ESP32 URI 要填 `ws://电脑局域网IP:8765/ws`，不要填 `127.0.0.1`。
+- `Voice client module` 的输入采样率和 `server/voice-server/.env` 里的采样率最好一致。
+- 服务端 TTS 要返回 `pcm`，串口日志应出现 `tts_start format=pcm sample_rate=...`。
+- TTS 播放炸麦时，把 `Voice client module -> TTS playback volume percent` 降到 50 或 40；
+  观察 `tts_end` 日志里的 `peak_in`、`peak_out` 和 `limited`。
+- 播放时默认会暂停上送麦克风，这是为了避免扬声器声音被再次识别。
 
 PCM stream 录不到 WAV：
 

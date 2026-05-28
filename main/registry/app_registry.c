@@ -17,6 +17,7 @@
 #include "speaker/speaker.h"
 #include "speaker_client/speaker_client.h"
 #include "system_info/system_info.h"
+#include "voice_client/voice_client.h"
 #include "websocket_client/websocket_client.h"
 #include "websocket_server/websocket_server.h"
 #include "uart_echo/uart_echo.h"
@@ -135,6 +136,14 @@ static const app_case_t s_cases[] = {
         .runs_forever = true,
     },
     {
+        .key = "voice_client",
+        .title = "实时语音对话客户端",
+        .doc_path = "docs/modules/18_voice_client.md",
+        .run = voice_client_run,
+        .needs_wifi = true,
+        .runs_forever = true,
+    },
+    {
         .key = "display",
         .title = "I2C OLED 显示屏",
         .doc_path = "docs/modules/12_display.md",
@@ -221,18 +230,20 @@ const app_case_t *app_registry_selected(void)
     return &s_cases[11];
 #elif CONFIG_ESPESP_MODULE_SPEAKER_CLIENT
     return &s_cases[12];
-#elif CONFIG_ESPESP_MODULE_DISPLAY
+#elif CONFIG_ESPESP_MODULE_VOICE_CLIENT
     return &s_cases[13];
-#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
+#elif CONFIG_ESPESP_MODULE_DISPLAY
     return &s_cases[14];
-#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
+#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
     return &s_cases[15];
-#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
+#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
     return &s_cases[16];
-#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
+#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
     return &s_cases[17];
-#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
     return &s_cases[18];
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+    return &s_cases[19];
 #else
     return &s_cases[0];
 #endif
