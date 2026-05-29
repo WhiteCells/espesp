@@ -15,6 +15,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
+#include "voice_client/voice_client_aec.h"
 #include "voice_client/voice_client_audio.h"
 #include "voice_client/voice_client_context.h"
 #include "voice_client/voice_client_transport.h"
@@ -28,6 +29,10 @@ static void voice_client_cleanup(voice_client_context_t *ctx,
                                  int32_t *raw_samples,
                                  int16_t *pcm_samples)
 {
+    if (ctx->aec != NULL) {
+        voice_client_aec_destroy(ctx->aec);
+        ctx->aec = NULL;
+    }
     if (client != NULL) {
         esp_websocket_client_stop(client);
         esp_websocket_client_destroy(client);
@@ -83,6 +88,7 @@ esp_err_t voice_client_run(void)
         .binary_payload_active = false,
         .warned_drop_binary = false,
         .has_pending_byte = false,
+        .awaiting_tts_end = false,
         .pending_byte = 0,
         .output_sample_rate_hz = CONFIG_ESPESP_SPK_SAMPLE_RATE_HZ,
         .mic_sent_bytes = 0,
@@ -102,6 +108,18 @@ esp_err_t voice_client_run(void)
     if (ctx.event_group == NULL) {
         return ESP_ERR_NO_MEM;
     }
+
+#if CONFIG_ESPESP_VOICE_CLIENT_AEC_ENABLED
+    ctx.aec = voice_client_aec_create(
+        CONFIG_ESPESP_VOICE_CLIENT_AEC_FILTER_LEN,
+        CONFIG_ESPESP_VOICE_CLIENT_AEC_STEP_SIZE_X256,
+        CONFIG_ESPESP_VOICE_CLIENT_INPUT_SAMPLE_RATE_HZ,
+        CONFIG_ESPESP_SPK_SAMPLE_RATE_HZ,
+        CONFIG_ESPESP_VOICE_CLIENT_AEC_MAX_DELAY_MS);
+    if (ctx.aec == NULL) {
+        ESP_LOGW(VOICE_CLIENT_TAG, "AEC create failed, running without echo cancellation");
+    }
+#endif
 
     int32_t *raw_samples = calloc(frame_samples, sizeof(int32_t));
     int16_t *pcm_samples = calloc(frame_samples, sizeof(int16_t));
@@ -212,13 +230,6 @@ esp_err_t voice_client_run(void)
         }
 
         size_t bytes_read = 0;
-#if CONFIG_ESPESP_VOICE_CLIENT_PAUSE_MIC_DURING_TTS
-        if (ctx.playback_streaming) {
-            vTaskDelay(pdMS_TO_TICKS(CONFIG_ESPESP_VOICE_CLIENT_FRAME_MS));
-            voice_client_log_mic_progress(&ctx);
-            continue;
-        }
-#endif
 
         ret = i2s_channel_read(ctx.rx_channel,
                                raw_samples,
@@ -237,6 +248,10 @@ esp_err_t voice_client_run(void)
         size_t sample_count = bytes_read / sizeof(raw_samples[0]);
         for (size_t i = 0; i < sample_count; i++) {
             pcm_samples[i] = voice_client_convert_sample(raw_samples[i]);
+        }
+
+        if (ctx.aec != NULL) {
+            voice_client_aec_process(ctx.aec, pcm_samples, pcm_samples, sample_count);
         }
 
         (void)voice_client_send_audio_frame(client, &ctx, pcm_samples, sample_count);

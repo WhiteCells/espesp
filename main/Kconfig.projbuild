@@ -801,12 +801,44 @@ config ESPESP_VOICE_CLIENT_TTS_LIMIT_PERCENT
         Peak limiter applied after TTS volume scaling. Values below 100 leave
         headroom for I2S amplifiers and small speakers.
 
-config ESPESP_VOICE_CLIENT_PAUSE_MIC_DURING_TTS
-    bool "Pause upstream microphone while TTS is playing"
+config ESPESP_VOICE_CLIENT_AEC_ENABLED
+    bool "Enable acoustic echo cancellation (AEC)"
     default y
     help
-        Keeps the speaker output from being immediately captured and sent back
-        to ASR on simple half-duplex hardware.
+        Enable full-duplex AEC to remove speaker output from the microphone
+        signal. Uses an NLMS adaptive filter. When enabled, the microphone
+        stays active during TTS playback.
+
+config ESPESP_VOICE_CLIENT_AEC_FILTER_LEN
+    int "AEC filter length (taps)"
+    range 64 1024
+    default 256
+    depends on ESPESP_VOICE_CLIENT_AEC_ENABLED
+    help
+        Number of NLMS filter taps. More taps handle longer echo paths but
+        use more CPU and memory. This is the primary parameter that decides
+        how much echo-path span the adaptive filter can model. At 16 kHz,
+        256 taps = 16 ms of echo path.
+
+config ESPESP_VOICE_CLIENT_AEC_STEP_SIZE_X256
+    int "AEC step size (scaled by 256)"
+    range 1 256
+    default 128
+    depends on ESPESP_VOICE_CLIENT_AEC_ENABLED
+    help
+        NLMS convergence speed. 128 = 0.5 (moderate). Higher values converge
+        faster but may be unstable. Lower values are more stable but slower.
+
+config ESPESP_VOICE_CLIENT_AEC_MAX_DELAY_MS
+    int "AEC max acoustic delay in ms"
+    range 10 500
+    default 200
+    depends on ESPESP_VOICE_CLIENT_AEC_ENABLED
+    help
+        Sets the reference-history depth and post-playback tail window.
+        The current implementation does not automatically search the best
+        delay offset, so increasing this value alone does not replace a
+        longer AEC filter length.
 
 config ESPESP_VOICE_CLIENT_CONNECT_TIMEOUT_MS
     int "Connect timeout in ms"

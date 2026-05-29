@@ -9,6 +9,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "voice_client/voice_client_aec.h"
 #include "voice_client/voice_client_audio.h"
 
 static const char *voice_client_find_json_value(const char *json, const char *key)
@@ -273,6 +274,8 @@ static void voice_client_handle_tts_start(voice_client_context_t *ctx, const cha
     ctx->playback_pcm = strcmp(response_format, "pcm") == 0;
     ctx->binary_payload_active = false;
     ctx->warned_drop_binary = false;
+    ctx->awaiting_tts_end = true;
+    ctx->has_pending_byte = false;
 
     if (!ctx->playback_pcm) {
         ESP_LOGE(VOICE_CLIENT_TAG, "unsupported TTS response_format=%s; only pcm can be played directly", response_format);
@@ -292,6 +295,12 @@ static void voice_client_handle_tts_start(voice_client_context_t *ctx, const cha
 
     voice_client_reset_playback_stats(ctx);
     ctx->playback_streaming = true;
+
+    if (ctx->aec != NULL) {
+        voice_client_aec_set_speaker_rate(ctx->aec, sample_rate);
+        voice_client_aec_playback_start(ctx->aec);
+    }
+
     ESP_LOGI(VOICE_CLIENT_TAG,
              "tts_start format=%s sample_rate=%" PRIu32 " volume=%d%% limit=%d%% text=%s",
              response_format,
@@ -315,7 +324,15 @@ static void voice_client_handle_tts_end(voice_client_context_t *ctx, const char 
     }
 
     ctx->playback_streaming = false;
+    ctx->playback_pcm = false;
     ctx->binary_payload_active = false;
+    ctx->awaiting_tts_end = false;
+    ctx->warned_drop_binary = false;
+
+    if (ctx->aec != NULL) {
+        voice_client_aec_playback_end(ctx->aec);
+    }
+
     ESP_LOGI(VOICE_CLIENT_TAG,
              "tts_end server_bytes=%" PRIu64 " received=%" PRIu64 " written=%" PRIu64
              " chunks=%" PRIu32 " peak_in=%" PRIu32 " peak_out=%" PRIu32
@@ -370,6 +387,14 @@ void voice_client_handle_control_text(voice_client_context_t *ctx, const char *j
                  "voice_server error code=%s message=%s",
                  code[0] != '\0' ? code : "(unknown)",
                  message[0] != '\0' ? message : json);
+        ctx->playback_streaming = false;
+        ctx->playback_pcm = false;
+        ctx->binary_payload_active = false;
+        ctx->awaiting_tts_end = false;
+        ctx->has_pending_byte = false;
+        if (ctx->aec != NULL) {
+            voice_client_aec_playback_end(ctx->aec);
+        }
     } else {
         ESP_LOGI(VOICE_CLIENT_TAG, "control type=%s payload=%s", type, json);
     }

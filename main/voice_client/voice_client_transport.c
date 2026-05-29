@@ -10,6 +10,7 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "voice_client/voice_client_aec.h"
 #include "voice_client/voice_client_audio.h"
 #include "voice_client/voice_client_protocol.h"
 
@@ -187,8 +188,14 @@ void voice_client_event_handler(void *handler_args,
         if (ctx != NULL) {
             ctx->session_started = false;
             ctx->playback_streaming = false;
+            ctx->playback_pcm = false;
             ctx->binary_payload_active = false;
+            ctx->awaiting_tts_end = false;
             ctx->has_pending_byte = false;
+            ctx->warned_drop_binary = false;
+            if (ctx->aec != NULL) {
+                voice_client_aec_playback_end(ctx->aec);
+            }
         }
         if (ctx != NULL && ctx->event_group != NULL) {
             xEventGroupClearBits(ctx->event_group, VOICE_CLIENT_CONNECTED_BIT);

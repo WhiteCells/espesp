@@ -7,6 +7,7 @@
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "voice_client/voice_client_aec.h"
 
 esp_err_t voice_client_create_rx_channel(i2s_chan_handle_t *rx_channel)
 {
@@ -253,10 +254,16 @@ static esp_err_t voice_client_write_processed_pcm_i2s(voice_client_context_t *ct
             sample_count = VOICE_CLIENT_PLAYBACK_WORK_SAMPLES;
         }
 
+        int16_t ref_samples[VOICE_CLIENT_PLAYBACK_WORK_SAMPLES];
         for (size_t i = 0; i < sample_count; i++) {
             int16_t sample = voice_client_load_s16le(cursor + i * VOICE_CLIENT_SAMPLE_WIDTH_BYTES);
             sample = voice_client_process_tts_sample(ctx, sample);
+            ref_samples[i] = sample;
             voice_client_store_s16le(output + i * VOICE_CLIENT_SAMPLE_WIDTH_BYTES, sample);
+        }
+
+        if (ctx->aec != NULL) {
+            voice_client_aec_feed_reference(ctx->aec, ref_samples, sample_count);
         }
 
         size_t bytes_to_write = sample_count * VOICE_CLIENT_SAMPLE_WIDTH_BYTES;

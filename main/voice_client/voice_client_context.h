@@ -7,6 +7,7 @@
 #include "driver/i2s_std.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
+#include "voice_client/voice_client_aec.h"
 
 #define VOICE_CLIENT_CONNECTED_BIT BIT0
 #define VOICE_CLIENT_ERROR_BIT BIT1
@@ -16,6 +17,7 @@ typedef struct {
     EventGroupHandle_t event_group;
     i2s_chan_handle_t rx_channel;
     i2s_chan_handle_t tx_channel;
+    voice_client_aec_t *aec;
     volatile bool tx_enabled;
     volatile bool start_pending;
     volatile bool session_started;
@@ -24,6 +26,7 @@ typedef struct {
     volatile bool binary_payload_active;
     volatile bool warned_drop_binary;
     volatile bool has_pending_byte;
+    volatile bool awaiting_tts_end;
     uint8_t pending_byte;
     uint32_t output_sample_rate_hz;
     uint64_t mic_sent_bytes;
