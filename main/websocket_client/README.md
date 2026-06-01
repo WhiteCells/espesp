@@ -32,6 +32,16 @@ idf.py build flash monitor
 模块会发送一条初始文本消息，随后周期发送状态 JSON；服务端推送或回显的文本、
 二进制帧会打印到串口日志。
 
+## 代码结构
+
+`websocket_client` 对外仍只暴露 `websocket_client_run()`，内部按职责拆成：
+
+- `websocket_client.c`：模块入口和生命周期编排。负责连接 Wi-Fi、创建 client、等待首次连上并驱动状态上报主循环。
+- `websocket_client_transport.c`：连接层。负责 URI/header 校验、WebSocket 事件回调、连接 bit 和错误状态同步。
+- `websocket_client_messages.c`：消息层。负责初始 payload / status JSON 发送，以及收到的 text/binary chunk 日志摘要。
+- `websocket_client_context.h`：内部共享状态、事件 bit 和公共常量。
+- `websocket_client_transport.h`、`websocket_client_messages.h`：内部接口声明。
+
 ## 可用能力
 
 - 连接 `ws://` 或 `wss://` WebSocket endpoint。
@@ -67,3 +77,4 @@ idf.py build flash monitor
 - ESP32 连接电脑端测试 server 时，URI 要填电脑局域网 IP，不要填 `127.0.0.1`。
 - 默认配置重点演示明文 `ws://`；生产环境要结合证书配置改成 `wss://`。
 - 大消息可能被拆成多个 data event，本示例按 chunk 打印。
+- 后续如果要改鉴权头、重连时的事件处理，优先看 `websocket_client_transport.c`；如果要改上报内容或日志摘要，优先看 `websocket_client_messages.c`。
