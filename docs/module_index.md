@@ -72,6 +72,8 @@ NVS 适合保存少量配置，例如 Wi-Fi 配网结果、设备编号、运行
 - `speaker_client`：通过 WebSocket 接收电脑端 WAV 音频流并用 I2S 播放。
 - `voice_client`：通过 WebSocket 接入 voice-server，上送麦克风 PCM 并播放 TTS PCM。
 - `voice_callback`：本地全双工麦克风回放，使用低延迟队列和回声门控避免扬声器回灌。
+- `wake_word`：使用 ESP-SR WakeNet 做本地唤醒词检测，可指定已打包进模型分区的 WakeNet 模型。
+- `micro_wake_word`：使用 microWakeWord/TFLite 做本地唤醒词检测，默认内置 Hey Jarvis 示例模型，可替换为自训练模型。
 - `display`：通过 I2C 写 SSD1306 OLED。
 
 ## 6. Wi-Fi 与事件模型

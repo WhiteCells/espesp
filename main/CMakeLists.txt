@@ -31,6 +31,7 @@ idf_component_register(
         "uart_echo/uart_echo.c"
         "i2c_scan/i2c_scan.c"
         "microphone/microphone.c"
+        "micro_wake_word/micro_wake_word.cpp"
         "pcm_stream/pcm_stream.c"
         "speaker/speaker.c"
         "speaker_client/speaker_client.c"
@@ -44,10 +45,13 @@ idf_component_register(
         "voice_client/voice_client_audio.c"
         "voice_client/voice_client_protocol.c"
         "voice_client/voice_client_transport.c"
+        "wake_word/wake_word.c"
         "display/display.c"
     PRIV_REQUIRES
+        ESPMicroSpeechFeatures
         esp_adc
         esp_app_format
+        espressif__esp-tflite-micro
         esp_driver_gpio
         esp_driver_i2c
         esp_driver_i2s
@@ -58,12 +62,15 @@ idf_component_register(
         esp_https_server
         esp_websocket_client
         esp_hw_support
+        esp_psram
+        micro_wake_word
         mqtt
         mbedtls
         esp_netif
         esp_system
         esp_timer
         esp_wifi
+        esp-sr
         freertos
         heap
         log

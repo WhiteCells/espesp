@@ -14,12 +14,14 @@
 #include "mqtt_client/mqtt_client_app.h"
 #include "nvs_counter/nvs_counter.h"
 #include "pcm_stream/pcm_stream.h"
+#include "micro_wake_word/micro_wake_word.h"
 #include "rtos_tasks/rtos_tasks.h"
 #include "speaker/speaker.h"
 #include "speaker_client/speaker_client.h"
 #include "system_info/system_info.h"
 #include "voice_callback/voice_callback.h"
 #include "voice_client/voice_client.h"
+#include "wake_word/wake_word.h"
 #include "websocket_client/websocket_client.h"
 #include "websocket_server/websocket_server.h"
 #include "uart_echo/uart_echo.h"
@@ -154,6 +156,22 @@ static const app_case_t s_cases[] = {
         .runs_forever = true,
     },
     {
+        .key = "wake_word",
+        .title = "本地 WakeNet 唤醒词检测",
+        .doc_path = "docs/modules/21_wake_word.md",
+        .run = wake_word_run,
+        .needs_wifi = false,
+        .runs_forever = true,
+    },
+    {
+        .key = "micro_wake_word",
+        .title = "本地 microWakeWord 唤醒词检测",
+        .doc_path = "docs/modules/22_micro_wake_word.md",
+        .run = micro_wake_word_run,
+        .needs_wifi = false,
+        .runs_forever = true,
+    },
+    {
         .key = "voice_callback",
         .title = "全双工本地语音回放",
         .doc_path = "docs/modules/19_voice_callback.md",
@@ -252,20 +270,24 @@ const app_case_t *app_registry_selected(void)
     return &s_cases[13];
 #elif CONFIG_ESPESP_MODULE_VOICE_CLIENT
     return &s_cases[14];
-#elif CONFIG_ESPESP_MODULE_VOICE_CALLBACK
+#elif CONFIG_ESPESP_MODULE_WAKE_WORD
     return &s_cases[15];
-#elif CONFIG_ESPESP_MODULE_DISPLAY
+#elif CONFIG_ESPESP_MODULE_MICRO_WAKE_WORD
     return &s_cases[16];
-#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
+#elif CONFIG_ESPESP_MODULE_VOICE_CALLBACK
     return &s_cases[17];
-#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
+#elif CONFIG_ESPESP_MODULE_DISPLAY
     return &s_cases[18];
-#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
+#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
     return &s_cases[19];
-#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
+#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
     return &s_cases[20];
-#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
     return &s_cases[21];
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
+    return &s_cases[22];
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+    return &s_cases[23];
 #else
     return &s_cases[0];
 #endif

@@ -67,6 +67,12 @@ config ESPESP_MODULE_VOICE_CALLBACK
 config ESPESP_MODULE_VOICE_CLIENT
     bool "voice_client: microphone -> voice-server -> speaker"
 
+config ESPESP_MODULE_WAKE_WORD
+    bool "wake_word: local WakeNet keyword detection"
+
+config ESPESP_MODULE_MICRO_WAKE_WORD
+    bool "micro_wake_word: local microWakeWord keyword detection"
+
 config ESPESP_MODULE_DISPLAY
     bool "display: write SSD1306 OLED pattern"
 
@@ -1155,6 +1161,127 @@ config ESPESP_VOICE_CLIENT_I2S_WRITE_TIMEOUT_MS
     int "I2S speaker write timeout in ms"
     range 100 5000
     default 1000
+
+endmenu
+
+menu "Wake word module"
+
+config ESPESP_WAKE_WORD_MODEL
+    string "WakeNet model name or substring"
+    default ""
+    help
+        Select a WakeNet model already present in the ESP-SR model partition.
+        Leave empty to use the first WakeNet model found. This does not train
+        a new wake word at runtime; custom wake words must be trained and
+        packaged as WakeNet models first.
+
+config ESPESP_WAKE_WORD_KEYWORD_HINT
+    string "Wake keyword hint"
+    default ""
+    help
+        Optional fallback substring used when matching model names. This is
+        useful after adding a custom model whose filename includes the wake
+        phrase or project code name.
+
+choice ESPESP_WAKE_WORD_MIC_SLOT
+    prompt "Wake word microphone I2S slot"
+    default ESPESP_WAKE_WORD_MIC_SLOT_LEFT
+    help
+        Select the I2S slot used by the microphone. Only one slot is fed to
+        WakeNet as mono PCM.
+
+config ESPESP_WAKE_WORD_MIC_SLOT_LEFT
+    bool "Left"
+
+config ESPESP_WAKE_WORD_MIC_SLOT_RIGHT
+    bool "Right"
+
+endchoice
+
+config ESPESP_WAKE_WORD_SAMPLE_SHIFT_BITS
+    int "Microphone sample right shift bits"
+    range 8 16
+    default 12
+    help
+        Controls how 32-bit I2S microphone samples are scaled down to 16-bit
+        PCM for WakeNet. Lower values are louder and may clip; higher values
+        are quieter.
+
+config ESPESP_WAKE_WORD_STATUS_EVERY_CHUNKS
+    int "Status log period in AFE chunks"
+    range 10 2000
+    default 100
+    help
+        Print listening statistics every N AFE feed chunks.
+
+endmenu
+
+menu "microWakeWord module"
+
+config ESPESP_MICRO_WAKE_WORD_LABEL
+    string "Wake word label"
+    default "Hey Jarvis"
+    help
+        Label printed when the bundled sample microWakeWord model detects a
+        wake word. Replace the model header and this label when using your own
+        trained TFLite model.
+
+config ESPESP_MICRO_WAKE_WORD_PROBABILITY_CUTOFF
+    float "Detection probability cutoff"
+    range 0.50 0.99
+    default 0.90
+    help
+        Higher values reduce false positives but can miss more real wake words.
+
+config ESPESP_MICRO_WAKE_WORD_SLIDING_WINDOW_SIZE
+    int "Sliding window average size"
+    range 1 20
+    default 5
+    help
+        Number of recent model probabilities averaged before declaring a
+        detection.
+
+config ESPESP_MICRO_WAKE_WORD_TENSOR_ARENA_SIZE
+    int "TFLite tensor arena size"
+    range 8192 131072
+    default 40960
+    help
+        Tensor arena size for the bundled Hey Jarvis sample model. ESP-IDF 6
+        and the current esp-tflite-micro package need more than the upstream
+        example's 22940 bytes. Custom models may need a larger value.
+
+config ESPESP_MICRO_WAKE_WORD_FEATURE_STEP_MS
+    int "Feature step size in ms"
+    range 10 30
+    default 10
+    help
+        Audio frontend step size. Keep 10 ms for ESPHome microWakeWord models
+        unless the model metadata says otherwise.
+
+choice ESPESP_MICRO_WAKE_WORD_MIC_SLOT
+    prompt "microWakeWord microphone I2S slot"
+    default ESPESP_MICRO_WAKE_WORD_MIC_SLOT_LEFT
+
+config ESPESP_MICRO_WAKE_WORD_MIC_SLOT_LEFT
+    bool "Left"
+
+config ESPESP_MICRO_WAKE_WORD_MIC_SLOT_RIGHT
+    bool "Right"
+
+endchoice
+
+config ESPESP_MICRO_WAKE_WORD_SAMPLE_SHIFT_BITS
+    int "Microphone sample right shift bits"
+    range 8 16
+    default 10
+    help
+        Controls how 32-bit I2S microphone samples are scaled down to 16-bit
+        PCM for microWakeWord.
+
+config ESPESP_MICRO_WAKE_WORD_STATUS_EVERY_READS
+    int "Status log period in microphone reads"
+    range 10 2000
+    default 100
 
 endmenu
 

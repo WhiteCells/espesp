@@ -33,8 +33,11 @@ Wi-Fi、HTTP、WebSocket、麦克风、扬声器、显示屏等模块还需要�
 | 15 | `https_server` | 局域网 HTTPS 服务、NVS 证书、TLS 加密 | `main/https_server/https_server.c` |
 | 16 | `pcm_stream` | I2S 麦克风 PCM 通过 UART/UDP 传到电脑并写 WAV | `main/pcm_stream/pcm_stream.c` |
 | 17 | `speaker_client` | 通过 WebSocket 接收电脑端 WAV 音频流并用 I2S 播放 | `main/speaker_client/speaker_client.c` |
+| 18 | `voice_client` | 通过 WebSocket 接入 voice-server，上送麦克风 PCM 并播放 TTS PCM | `main/voice_client/voice_client.c` |
 | 19 | `voice_callback` | I2S 麦克风本地全双工回放，带低延迟回声门控 | `main/voice_callback/voice_callback.c` |
 | 20 | `https_client` | Wi-Fi 后发起 HTTPS GET、证书 bundle 或 NVS CA 校验 | `main/https_client/https_client.c` |
+| 21 | `wake_word` | ESP-SR WakeNet 本地唤醒词检测、可指定已打包模型 | `main/wake_word/wake_word.c` |
+| 22 | `micro_wake_word` | microWakeWord 本地 TFLite 唤醒词检测、适合自定义模型 | `main/micro_wake_word/micro_wake_word.cpp` |
 | 26a | `websocket_server` | WebSocket 升级、文本/二进制帧、状态推送、可选鉴权 | `main/websocket_server/websocket_server.c` |
 | 26b | `websocket_client` | 主动连接 WebSocket server、发送状态、接收推送、可选鉴权 | `main/websocket_client/websocket_client.c` |
 

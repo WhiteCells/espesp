@@ -82,6 +82,8 @@ ESPESP Menu
   -> Speaker client module
   -> Voice callback module
   -> Voice client module
+  -> Wake word module
+  -> microWakeWord module
   -> Display module
 ```
 
@@ -136,6 +138,20 @@ I2S 麦克风或扬声器没有数据：
 - 确认 BCLK、WS/LRCLK、DIN/DOUT 引脚和模块方向。
 - 确认供电电压符合模块要求，并且 GND 共地。
 - 麦克风的左右声道选择脚可能影响数据输出。
+
+wake_word 编译或运行失败：
+
+- 本模块依赖 ESP-SR 和 `model` 分区；默认配置面向 ESP32-S3 N16R8。
+- 自定义唤醒词不能在运行时直接输入文字，需要先训练成 WakeNet 模型并烧进模型分区。
+- 启动时报 `no speech models found` 时，确认使用 `partitions_16mb_sr.csv` 并执行 `idf.py flash`。
+- 一直检测不到时，先跑 `microphone` 或 `pcm_stream`，确认麦克风有声音且 I2S slot 选对。
+
+micro_wake_word 编译或运行失败：
+
+- 本模块依赖 `micro_wake_word_standalone`、`esp-tflite-micro` 和 `ESPMicroSpeechFeatures` 组件。
+- 默认模型是 `Hey Jarvis` 示例；自定义唤醒词需要先训练并替换 TFLite 模型头文件。
+- 启动时报 PSRAM 未启用时，进入 `Component config -> ESP PSRAM` 打开 external SPI RAM。
+- 检测不到时，先看日志里的 `avg_abs/peak`，确认麦克风有声音且 I2S slot 选对。
 
 speaker_client 无声或失真：
 
