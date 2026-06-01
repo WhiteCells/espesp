@@ -21,7 +21,9 @@
 
 #define VOICE_CALLBACK_SAMPLE_BYTES 2U
 #define VOICE_CALLBACK_STATS_PERIOD_US 1000000LL
-#define VOICE_CALLBACK_MAX_PENDING_PLAYBACK_FRAMES 4U
+#define VOICE_CALLBACK_MAX_PENDING_PLAYBACK_FRAMES 2U
+#define VOICE_CALLBACK_CAPTURE_IDLE_PERIOD_FRAMES 50U
+#define VOICE_CALLBACK_CAPTURE_IDLE_DELAY_TICKS 1U
 #define VOICE_CALLBACK_FRAME_DURATION_MS \
     (((CONFIG_ESPESP_VOICE_CALLBACK_FRAME_SAMPLES * 1000U) + \
       CONFIG_ESPESP_VOICE_CALLBACK_SAMPLE_RATE_HZ - 1U) / \
@@ -80,35 +82,35 @@
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_AEC_FILTER_LEN
-#define CONFIG_ESPESP_VOICE_CALLBACK_AEC_FILTER_LEN 64
+#define CONFIG_ESPESP_VOICE_CALLBACK_AEC_FILTER_LEN 128
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_AEC_STEP_SIZE_X256
-#define CONFIG_ESPESP_VOICE_CALLBACK_AEC_STEP_SIZE_X256 64
+#define CONFIG_ESPESP_VOICE_CALLBACK_AEC_STEP_SIZE_X256 32
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_AEC_MAX_DELAY_MS
-#define CONFIG_ESPESP_VOICE_CALLBACK_AEC_MAX_DELAY_MS 80
+#define CONFIG_ESPESP_VOICE_CALLBACK_AEC_MAX_DELAY_MS 120
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_AEC_REFERENCE_DELAY_MS
-#define CONFIG_ESPESP_VOICE_CALLBACK_AEC_REFERENCE_DELAY_MS 40
+#define CONFIG_ESPESP_VOICE_CALLBACK_AEC_REFERENCE_DELAY_MS 30
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_NOISE_GATE_AVG_ABS
-#define CONFIG_ESPESP_VOICE_CALLBACK_NOISE_GATE_AVG_ABS 120
+#define CONFIG_ESPESP_VOICE_CALLBACK_NOISE_GATE_AVG_ABS 140
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_ECHO_GATE_PERCENT
-#define CONFIG_ESPESP_VOICE_CALLBACK_ECHO_GATE_PERCENT 500
+#define CONFIG_ESPESP_VOICE_CALLBACK_ECHO_GATE_PERCENT 240
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_SPEAKER_ACTIVE_TIMEOUT_MS
-#define CONFIG_ESPESP_VOICE_CALLBACK_SPEAKER_ACTIVE_TIMEOUT_MS 700
+#define CONFIG_ESPESP_VOICE_CALLBACK_SPEAKER_ACTIVE_TIMEOUT_MS 350
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_GATE_HOLD_MS
-#define CONFIG_ESPESP_VOICE_CALLBACK_GATE_HOLD_MS 900
+#define CONFIG_ESPESP_VOICE_CALLBACK_GATE_HOLD_MS 320
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_GATE_RELEASE_PERCENT
@@ -116,19 +118,11 @@
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_GATE_RELEASE_MIN_AVG_ABS
-#define CONFIG_ESPESP_VOICE_CALLBACK_GATE_RELEASE_MIN_AVG_ABS 80
+#define CONFIG_ESPESP_VOICE_CALLBACK_GATE_RELEASE_MIN_AVG_ABS 90
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_GATE_HOLD_GAIN_PERCENT
-#define CONFIG_ESPESP_VOICE_CALLBACK_GATE_HOLD_GAIN_PERCENT 80
-#endif
-
-#ifndef CONFIG_ESPESP_VOICE_CALLBACK_GATE_TAIL_MS
-#define CONFIG_ESPESP_VOICE_CALLBACK_GATE_TAIL_MS 350
-#endif
-
-#ifndef CONFIG_ESPESP_VOICE_CALLBACK_GATE_TAIL_GAIN_PERCENT
-#define CONFIG_ESPESP_VOICE_CALLBACK_GATE_TAIL_GAIN_PERCENT 60
+#define CONFIG_ESPESP_VOICE_CALLBACK_GATE_HOLD_GAIN_PERCENT 70
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_HIGHPASS_FILTER_ENABLED
@@ -136,11 +130,7 @@
 #endif
 
 #ifndef CONFIG_ESPESP_VOICE_CALLBACK_HIGHPASS_ALPHA_Q15
-#define CONFIG_ESPESP_VOICE_CALLBACK_HIGHPASS_ALPHA_Q15 31800
-#endif
-
-#ifndef CONFIG_ESPESP_VOICE_CALLBACK_NOISE_SUPPRESS_FLOOR_ABS
-#define CONFIG_ESPESP_VOICE_CALLBACK_NOISE_SUPPRESS_FLOOR_ABS 0
+#define CONFIG_ESPESP_VOICE_CALLBACK_HIGHPASS_ALPHA_Q15 31200
 #endif
 
 #if CONFIG_ESPESP_VOICE_CALLBACK_MIC_SLOT_RIGHT
@@ -152,18 +142,14 @@
 #endif
 
 typedef struct {
-    uint32_t sequence;
     size_t sample_count;
     bool muted;
-    uint32_t mic_avg_abs;
-    uint32_t clean_avg_abs;
     int16_t samples[CONFIG_ESPESP_VOICE_CALLBACK_FRAME_SAMPLES];
 } voice_callback_frame_t;
 
 typedef enum {
     VOICE_CALLBACK_GATE_PASS = 0,
     VOICE_CALLBACK_GATE_HOLD,
-    VOICE_CALLBACK_GATE_TAIL,
     VOICE_CALLBACK_GATE_NOISE,
     VOICE_CALLBACK_GATE_SPEAKER,
 } voice_callback_gate_result_t;
@@ -182,15 +168,12 @@ typedef struct {
     uint64_t speaker_guard_frames;
     uint64_t passed_frames;
     uint64_t hold_frames;
-    uint64_t tail_frames;
     uint64_t playback_underflow_frames;
     uint64_t input_limited_frames;
     uint64_t playback_limited_samples;
     volatile uint32_t last_playback_avg_abs;
-    volatile uint32_t last_playback_peak;
     volatile int64_t last_audible_playback_us;
     volatile int64_t last_gate_pass_us;
-    uint32_t last_input_peak_abs;
     int32_t input_gain_q15;
     uint32_t gate_gain_q15;
     int32_t highpass_prev_input;
@@ -312,7 +295,6 @@ static void voice_callback_convert_frame(voice_callback_context_t *ctx,
         current_gain_q15 += delta > 8 ? delta / 8 : delta;
     }
     ctx->input_gain_q15 = current_gain_q15;
-    ctx->last_input_peak_abs = (uint32_t)input_peak;
 
     for (size_t i = 0; i < sample_count; i++) {
         int32_t pcm = raw_samples[i] >> CONFIG_ESPESP_VOICE_CALLBACK_MIC_SAMPLE_SHIFT_BITS;
@@ -385,34 +367,6 @@ static void voice_callback_highpass_filter(voice_callback_context_t *ctx,
     (void)ctx;
     (void)samples;
     (void)sample_count;
-#endif
-}
-
-static void voice_callback_apply_noise_floor_suppression(int16_t *samples,
-                                                         size_t sample_count,
-                                                         uint32_t frame_avg_abs)
-{
-#if CONFIG_ESPESP_VOICE_CALLBACK_NOISE_SUPPRESS_FLOOR_ABS > 0
-    const uint32_t floor = CONFIG_ESPESP_VOICE_CALLBACK_NOISE_SUPPRESS_FLOOR_ABS;
-    if (frame_avg_abs >= floor) {
-        return;
-    }
-
-    uint32_t gain_percent = floor > 0 ? (frame_avg_abs * 100U) / floor : 100U;
-    if (gain_percent < 35U) {
-        gain_percent = 35U;
-    } else if (gain_percent > 100U) {
-        gain_percent = 100U;
-    }
-
-    for (size_t i = 0; i < sample_count; i++) {
-        int32_t scaled = ((int32_t)samples[i] * (int32_t)gain_percent) / 100;
-        samples[i] = (int16_t)scaled;
-    }
-#else
-    (void)samples;
-    (void)sample_count;
-    (void)frame_avg_abs;
 #endif
 }
 
@@ -531,10 +485,7 @@ static voice_callback_gate_result_t voice_callback_gate_frame(voice_callback_con
             return VOICE_CALLBACK_GATE_PASS;
         }
 
-        uint32_t hold_floor = release_threshold / 2U;
-        hold_floor = voice_callback_max_u32(
-            hold_floor,
-            CONFIG_ESPESP_VOICE_CALLBACK_GATE_RELEASE_MIN_AVG_ABS / 2U);
+        uint32_t hold_floor = voice_callback_scale_percent(release_threshold, 75U);
         if (hold_floor == 0) {
             hold_floor = 1;
         }
@@ -549,27 +500,6 @@ static voice_callback_gate_result_t voice_callback_gate_frame(voice_callback_con
     return speaker_recent ? VOICE_CALLBACK_GATE_SPEAKER : VOICE_CALLBACK_GATE_NOISE;
 }
 
-static voice_callback_gate_result_t voice_callback_apply_gate_tail(voice_callback_context_t *ctx,
-                                                                   voice_callback_gate_result_t gate)
-{
-    if ((gate != VOICE_CALLBACK_GATE_NOISE && gate != VOICE_CALLBACK_GATE_SPEAKER) ||
-        CONFIG_ESPESP_VOICE_CALLBACK_GATE_TAIL_MS <= 0) {
-        return gate;
-    }
-
-    int64_t now_us = esp_timer_get_time();
-    int64_t elapsed_us = now_us - ctx->last_gate_pass_us;
-    int64_t hold_window_us = (int64_t)CONFIG_ESPESP_VOICE_CALLBACK_GATE_HOLD_MS * 1000LL;
-    int64_t tail_window_us = (int64_t)CONFIG_ESPESP_VOICE_CALLBACK_GATE_TAIL_MS * 1000LL;
-    if (ctx->last_gate_pass_us > 0 &&
-        elapsed_us >= hold_window_us &&
-        elapsed_us < hold_window_us + tail_window_us) {
-        return VOICE_CALLBACK_GATE_TAIL;
-    }
-
-    return gate;
-}
-
 static uint32_t voice_callback_gate_gain_q15(voice_callback_gate_result_t gate)
 {
     if (gate == VOICE_CALLBACK_GATE_PASS) {
@@ -577,10 +507,6 @@ static uint32_t voice_callback_gate_gain_q15(voice_callback_gate_result_t gate)
     }
     if (gate == VOICE_CALLBACK_GATE_HOLD) {
         uint32_t gain = (32768U * CONFIG_ESPESP_VOICE_CALLBACK_GATE_HOLD_GAIN_PERCENT) / 100U;
-        return gain > 32768U ? 32768U : gain;
-    }
-    if (gate == VOICE_CALLBACK_GATE_TAIL) {
-        uint32_t gain = (32768U * CONFIG_ESPESP_VOICE_CALLBACK_GATE_TAIL_GAIN_PERCENT) / 100U;
         return gain > 32768U ? 32768U : gain;
     }
     return 0;
@@ -689,13 +615,53 @@ static bool voice_callback_enqueue_playback_frame(voice_callback_context_t *ctx,
     return false;
 }
 
+static void voice_callback_cleanup(voice_callback_context_t *ctx)
+{
+    if (ctx == NULL) {
+        return;
+    }
+
+#if CONFIG_ESPESP_VOICE_CALLBACK_AEC_ENABLED
+    if (ctx->aec != NULL) {
+        voice_callback_aec_destroy(ctx->aec);
+    }
+    if (ctx->aec_lock != NULL) {
+        vSemaphoreDelete(ctx->aec_lock);
+    }
+#endif
+
+    if (ctx->tx_channel != NULL) {
+        i2s_del_channel(ctx->tx_channel);
+    }
+    if (ctx->rx_channel != NULL) {
+        i2s_del_channel(ctx->rx_channel);
+    }
+
+    if (ctx->playback_queue != NULL) {
+        voice_callback_frame_t *frame = NULL;
+        while (xQueueReceive(ctx->playback_queue, &frame, 0) == pdTRUE) {
+            free(frame);
+        }
+        vQueueDelete(ctx->playback_queue);
+    }
+    if (ctx->free_queue != NULL) {
+        voice_callback_frame_t *frame = NULL;
+        while (xQueueReceive(ctx->free_queue, &frame, 0) == pdTRUE) {
+            free(frame);
+        }
+        vQueueDelete(ctx->free_queue);
+    }
+
+    free(ctx);
+}
+
 static void voice_callback_capture_task(void *arg)
 {
     voice_callback_context_t *ctx = (voice_callback_context_t *)arg;
     int32_t raw_samples[CONFIG_ESPESP_VOICE_CALLBACK_FRAME_SAMPLES];
     int16_t mic_samples[CONFIG_ESPESP_VOICE_CALLBACK_FRAME_SAMPLES];
     int16_t clean_samples[CONFIG_ESPESP_VOICE_CALLBACK_FRAME_SAMPLES];
-    uint32_t sequence = 0;
+    uint32_t idle_yield_counter = 0;
 
     while (true) {
         voice_callback_frame_t *frame = NULL;
@@ -724,6 +690,16 @@ static void voice_callback_capture_task(void *arg)
         }
 
         size_t sample_count = bytes_read / sizeof(raw_samples[0]);
+        if (sample_count == 0) {
+            ctx->dropped_frames++;
+            voice_callback_return_frame(ctx, frame);
+            vTaskDelay(VOICE_CALLBACK_CAPTURE_IDLE_DELAY_TICKS);
+            continue;
+        }
+        if (sample_count > CONFIG_ESPESP_VOICE_CALLBACK_FRAME_SAMPLES) {
+            sample_count = CONFIG_ESPESP_VOICE_CALLBACK_FRAME_SAMPLES;
+        }
+
         uint32_t input_peak_abs = 0;
         voice_callback_convert_frame(ctx,
                                      raw_samples,
@@ -751,23 +727,15 @@ static void voice_callback_capture_task(void *arg)
                                                                       mic_avg_abs,
                                                                       clean_avg_abs,
                                                                       clean_peak);
-        gate = voice_callback_apply_gate_tail(ctx, gate);
         uint32_t target_gate_gain_q15 = voice_callback_gate_gain_q15(gate);
         bool should_play = target_gate_gain_q15 > 0;
 
-        uint32_t frame_sequence = sequence++;
-        frame->sequence = frame_sequence;
         frame->sample_count = sample_count;
         frame->muted = !should_play;
-        frame->mic_avg_abs = mic_avg_abs;
-        frame->clean_avg_abs = clean_avg_abs;
         if (should_play) {
-            voice_callback_apply_noise_floor_suppression(clean_samples, sample_count, clean_avg_abs);
             voice_callback_apply_gate_gain(ctx, clean_samples, sample_count, target_gate_gain_q15);
             memcpy(frame->samples, clean_samples, sample_count * sizeof(frame->samples[0]));
-            if (gate == VOICE_CALLBACK_GATE_TAIL) {
-                ctx->tail_frames++;
-            } else if (gate == VOICE_CALLBACK_GATE_HOLD) {
+            if (gate == VOICE_CALLBACK_GATE_HOLD) {
                 ctx->hold_frames++;
             } else {
                 ctx->passed_frames++;
@@ -790,7 +758,7 @@ static void voice_callback_capture_task(void *arg)
             ctx->last_capture_stats_us = now_us;
             ESP_LOGI(TAG,
                      "capture frames=%" PRIu64 " muted=%" PRIu64 " passed=%" PRIu64
-                     " hold=%" PRIu64 " tail=%" PRIu64 " guarded=%" PRIu64
+                     " hold=%" PRIu64 " guarded=%" PRIu64
                      " dropped=%" PRIu64 " mic_avg=%" PRIu32 " clean_avg=%" PRIu32
                      " mic_peak=%" PRIu32 " input_gain_q15=%" PRIi32
                      " gate_gain_q15=%" PRIu32 " input_limited=%" PRIu64
@@ -799,7 +767,6 @@ static void voice_callback_capture_task(void *arg)
                      ctx->muted_frames,
                      ctx->passed_frames,
                      ctx->hold_frames,
-                     ctx->tail_frames,
                      ctx->speaker_guard_frames,
                      ctx->dropped_frames,
                      mic_avg_abs,
@@ -812,7 +779,13 @@ static void voice_callback_capture_task(void *arg)
                      esp_get_free_heap_size());
         }
 
-        taskYIELD();
+        idle_yield_counter++;
+        if (idle_yield_counter >= VOICE_CALLBACK_CAPTURE_IDLE_PERIOD_FRAMES) {
+            idle_yield_counter = 0;
+            vTaskDelay(VOICE_CALLBACK_CAPTURE_IDLE_DELAY_TICKS);
+        } else {
+            taskYIELD();
+        }
     }
 }
 
@@ -869,7 +842,6 @@ static void voice_callback_playback_task(void *arg)
             ctx->played_frames++;
             if (peak_out > 0) {
                 ctx->last_playback_avg_abs = avg_out;
-                ctx->last_playback_peak = peak_out;
                 ctx->last_audible_playback_us = esp_timer_get_time();
             }
         }
@@ -931,23 +903,24 @@ esp_err_t voice_callback_run(void)
 
     esp_err_t ret = voice_callback_create_queues(ctx);
     if (ret != ESP_OK) {
-        return ret;
+        goto fail;
     }
 
     ret = voice_callback_create_rx_channel(&ctx->rx_channel);
     if (ret != ESP_OK) {
-        return ret;
+        goto fail;
     }
 
     ret = voice_callback_create_tx_channel(&ctx->tx_channel);
     if (ret != ESP_OK) {
-        return ret;
+        goto fail;
     }
 
 #if CONFIG_ESPESP_VOICE_CALLBACK_AEC_ENABLED
     ctx->aec_lock = xSemaphoreCreateMutex();
     if (ctx->aec_lock == NULL) {
-        return ESP_ERR_NO_MEM;
+        ret = ESP_ERR_NO_MEM;
+        goto fail;
     }
 
     ctx->aec = voice_callback_aec_create(CONFIG_ESPESP_VOICE_CALLBACK_AEC_FILTER_LEN,
@@ -960,8 +933,18 @@ esp_err_t voice_callback_run(void)
     }
 #endif
 
-    ESP_RETURN_ON_ERROR(i2s_channel_enable(ctx->rx_channel), TAG, "enable microphone");
-    ESP_RETURN_ON_ERROR(i2s_channel_enable(ctx->tx_channel), TAG, "enable speaker");
+    ret = i2s_channel_enable(ctx->rx_channel);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "enable microphone failed: %s", esp_err_to_name(ret));
+        goto fail;
+    }
+
+    ret = i2s_channel_enable(ctx->tx_channel);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "enable speaker failed: %s", esp_err_to_name(ret));
+        (void)i2s_channel_disable(ctx->rx_channel);
+        goto fail;
+    }
 
     ESP_LOGI(TAG,
              "full-duplex voice callback: sample_rate=%dHz frame=%u samples queue=%d mic_slot=%s shift=%d input_limit=%d%% volume=%d%% limit=%d%% gate=%d echo_gate=%d%% speaker_window=%dms aec=%d",
@@ -978,17 +961,14 @@ esp_err_t voice_callback_run(void)
              CONFIG_ESPESP_VOICE_CALLBACK_SPEAKER_ACTIVE_TIMEOUT_MS,
              CONFIG_ESPESP_VOICE_CALLBACK_AEC_ENABLED);
     ESP_LOGI(TAG,
-             "voice gate: max_pending=%u hold=%dms hold_gain=%d%% release=%d%% release_min=%d tail=%dms tail_gain=%d%% highpass=%d alpha_q15=%d suppress_floor=%d",
+             "voice gate: max_pending=%u hold=%dms hold_gain=%d%% release=%d%% release_min=%d highpass=%d alpha_q15=%d",
              (unsigned int)VOICE_CALLBACK_MAX_PENDING_PLAYBACK_FRAMES,
              CONFIG_ESPESP_VOICE_CALLBACK_GATE_HOLD_MS,
              CONFIG_ESPESP_VOICE_CALLBACK_GATE_HOLD_GAIN_PERCENT,
              CONFIG_ESPESP_VOICE_CALLBACK_GATE_RELEASE_PERCENT,
              CONFIG_ESPESP_VOICE_CALLBACK_GATE_RELEASE_MIN_AVG_ABS,
-             CONFIG_ESPESP_VOICE_CALLBACK_GATE_TAIL_MS,
-             CONFIG_ESPESP_VOICE_CALLBACK_GATE_TAIL_GAIN_PERCENT,
              CONFIG_ESPESP_VOICE_CALLBACK_HIGHPASS_FILTER_ENABLED,
-             CONFIG_ESPESP_VOICE_CALLBACK_HIGHPASS_ALPHA_Q15,
-             CONFIG_ESPESP_VOICE_CALLBACK_NOISE_SUPPRESS_FLOOR_ABS);
+             CONFIG_ESPESP_VOICE_CALLBACK_HIGHPASS_ALPHA_Q15);
     ESP_LOGI(TAG,
              "I2S microphone: BCLK=GPIO%d WS=GPIO%d DIN=GPIO%d",
              CONFIG_ESPESP_MIC_BCLK_GPIO,
@@ -1000,14 +980,18 @@ esp_err_t voice_callback_run(void)
              CONFIG_ESPESP_SPK_WS_GPIO,
              CONFIG_ESPESP_SPK_DOUT_GPIO);
 
+    TaskHandle_t capture_task = NULL;
     if (xTaskCreatePinnedToCore(voice_callback_capture_task,
                                 "vc_capture",
                                 CONFIG_ESPESP_VOICE_CALLBACK_TASK_STACK_SIZE,
                                 ctx,
                                 VOICE_CALLBACK_CAPTURE_PRIORITY,
-                                NULL,
+                                &capture_task,
                                 VOICE_CALLBACK_TASK_CORE) != pdPASS) {
-        return ESP_ERR_NO_MEM;
+        (void)i2s_channel_disable(ctx->tx_channel);
+        (void)i2s_channel_disable(ctx->rx_channel);
+        ret = ESP_ERR_NO_MEM;
+        goto fail;
     }
 
     if (xTaskCreatePinnedToCore(voice_callback_playback_task,
@@ -1017,8 +1001,19 @@ esp_err_t voice_callback_run(void)
                                 VOICE_CALLBACK_PLAYBACK_PRIORITY,
                                 NULL,
                                 VOICE_CALLBACK_TASK_CORE) != pdPASS) {
-        return ESP_ERR_NO_MEM;
+        ESP_LOGE(TAG, "create playback task failed after capture task started");
+        if (capture_task != NULL) {
+            vTaskDelete(capture_task);
+        }
+        (void)i2s_channel_disable(ctx->tx_channel);
+        (void)i2s_channel_disable(ctx->rx_channel);
+        ret = ESP_ERR_NO_MEM;
+        goto fail;
     }
 
     return ESP_OK;
+
+fail:
+    voice_callback_cleanup(ctx);
+    return ret;
 }

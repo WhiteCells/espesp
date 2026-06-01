@@ -25,6 +25,4 @@ esp_err_t voice_callback_aec_process(voice_callback_aec_t *aec,
                                      int16_t *pcm_out,
                                      size_t sample_count);
 
-void voice_callback_aec_playback_start(voice_callback_aec_t *aec);
-
 #endif
