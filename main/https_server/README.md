@@ -39,6 +39,14 @@ python -m http_client https://<esp-ip>:443 --token <token> --ca servercert.pem
 
 先连接 Wi-Fi，从 NVS 读取 PEM 格式的服务器证书和私钥，再启动 ESP-IDF HTTPS server，注册共享 LAN service 路由。
 
+## 模块内部结构
+
+- `https_server.c`：对外入口，只负责启动编排。
+- `https_server_runtime.c`：模块私有 runtime，负责鉴权配置校验、TLS/HTTPD 配置构造、证书挂载、路由注册和启动日志。
+- `https_server_runtime.h`：模块私有 runtime 结构和函数声明。
+- `https_server_credentials.c`：从 NVS 读取并校验 PEM 证书和私钥。
+- `https_server_credentials.h`：TLS 凭据结构和函数声明。
+
 ## TLS 凭据
 
 默认从 NVS 读取：
