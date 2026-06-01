@@ -6,7 +6,7 @@
 idf.py menuconfig
   -> ESPESP Menu
   -> Module selector
-  -> http_get: Wi-Fi + HTTP GET
+  -> http_client: Wi-Fi + HTTP GET
 ```
 
 配置 Wi-Fi 和 URL：
@@ -26,9 +26,9 @@ idf.py build flash monitor
 
 ## 当前模块已有接口
 
-### `esp_err_t http_get_run(void)`
+### `esp_err_t http_client_run(void)`
 
-先连接 Wi-Fi，再执行一次 HTTP GET，打印响应头和响应体片段。
+先连接 Wi-Fi，再执行一次 HTTP GET。模块入口只负责装配配置与编排，HTTP 请求生命周期和响应日志策略分别下沉到独立文件。
 
 参数：无。URL、超时和打印长度来自 Kconfig。
 
@@ -38,16 +38,43 @@ idf.py build flash monitor
 - `ESP_ERR_NO_MEM`：HTTP client 创建失败。
 - 其他 `esp_err_t`：Wi-Fi 连接或 HTTP 请求失败。
 
+## 当前内部结构
+
+- `http_client.c`：模块入口，负责 Wi-Fi、默认配置和结果汇总。
+- `http_request.c`：负责 `esp_http_client_init()` / `perform()` / `cleanup()` 生命周期。
+- `http_response_log.c`：负责事件回调、响应头日志和 body 输出限流。
+
 ## 本模块结构体
 
-### `http_get_context_t`
+### `http_request_t`
 
-用于在 HTTP 事件回调里保存打印进度。
+描述一次 HTTP 请求如何执行。
 
 字段说明：
 
+- `operation_name`：日志里的请求动作名，例如 `GET`。
+- `log_tag`：当前请求使用的日志 tag。
+- `client_config`：传给 `esp_http_client_init()` 的配置。
+
+### `http_response_meta_t`
+
+保存请求完成后的响应元信息。
+
+字段说明：
+
+- `status_code`：HTTP 状态码。
+- `content_length`：响应体长度；chunked 响应可能为 `-1`。
+
+### `http_response_log_t`
+
+用于在 HTTP 事件回调里保存打印进度和输出策略。
+
+字段说明：
+
+- `tag`：事件回调使用的日志 tag。
 - `printed_bytes`：已经打印的响应体字节数。
 - `print_limit`：最多打印多少字节，来自 `CONFIG_ESPESP_HTTP_PRINT_LIMIT`。
+- `limit_reached`：是否已经提示过输出截断。
 
 ## 常用接口说明
 
@@ -58,8 +85,8 @@ HTTP client 配置。
 本模块使用字段：
 
 - `url`：请求 URL，来自 `CONFIG_ESPESP_HTTP_URL`。
-- `event_handler`：事件回调函数，本模块是 `http_event_handler`。
-- `user_data`：传给事件回调的用户上下文，本模块传 `&ctx`。
+- `event_handler`：事件回调函数，本模块是 `http_response_log_event_handler()`。
+- `user_data`：传给事件回调的用户上下文，本模块传 `http_response_log_t`。
 - `timeout_ms`：请求超时时间，来自 `CONFIG_ESPESP_HTTP_TIMEOUT_MS`。
 
 常见可扩展字段：
@@ -124,4 +151,5 @@ HTTP 事件回调参数。
 
 - 默认 URL 是 HTTP 明文；HTTPS 需要配置证书，否则验证会失败。
 - `HTTP_EVENT_ON_DATA` 不保证一次给完整响应体，必须按 chunk 处理。
+- `http_client_run()` 现在只保留模块编排职责，后续如果增加 POST/鉴权/证书逻辑，优先放到 `http_request.c` 或新的策略文件。
 - 用 ESP32 访问电脑本地服务时，要填电脑局域网 IP，不要填 `127.0.0.1`。
