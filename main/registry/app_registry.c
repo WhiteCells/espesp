@@ -4,7 +4,8 @@
 
 #include "adc_reader/adc_reader.h"
 #include "display/display.h"
-#include "http_client/http_get.h"
+#include "http_client/http_client.h"
+#include "https_client/https_client.h"
 #include "http_server/http_server.h"
 #include "https_server/https_server.h"
 #include "i2c_scan/i2c_scan.h"
@@ -73,10 +74,18 @@ static const app_case_t s_cases[] = {
         .runs_forever = false,
     },
     {
-        .key = "http_get",
+        .key = "http_client",
         .title = "HTTP Client GET 请求",
-        .doc_path = "docs/modules/06_http_get.md",
-        .run = http_get_run,
+        .doc_path = "docs/modules/06_http_client.md",
+        .run = http_client_run,
+        .needs_wifi = true,
+        .runs_forever = false,
+    },
+    {
+        .key = "https_client",
+        .title = "HTTPS Client 安全 GET 请求",
+        .doc_path = "docs/modules/20_https_client.md",
+        .run = https_client_run,
         .needs_wifi = true,
         .runs_forever = false,
     },
@@ -223,38 +232,40 @@ const app_case_t *app_registry_selected(void)
     return &s_cases[3];
 #elif CONFIG_ESPESP_MODULE_WIFI_STATION
     return &s_cases[4];
-#elif CONFIG_ESPESP_MODULE_HTTP_GET
+#elif CONFIG_ESPESP_MODULE_HTTP_CLIENT
     return &s_cases[5];
-#elif CONFIG_ESPESP_MODULE_ADC_READER
+#elif CONFIG_ESPESP_MODULE_HTTPS_CLIENT
     return &s_cases[6];
-#elif CONFIG_ESPESP_MODULE_UART_ECHO
+#elif CONFIG_ESPESP_MODULE_ADC_READER
     return &s_cases[7];
-#elif CONFIG_ESPESP_MODULE_I2C_SCAN
+#elif CONFIG_ESPESP_MODULE_UART_ECHO
     return &s_cases[8];
-#elif CONFIG_ESPESP_MODULE_MICROPHONE
+#elif CONFIG_ESPESP_MODULE_I2C_SCAN
     return &s_cases[9];
-#elif CONFIG_ESPESP_MODULE_PCM_STREAM
+#elif CONFIG_ESPESP_MODULE_MICROPHONE
     return &s_cases[10];
-#elif CONFIG_ESPESP_MODULE_SPEAKER
+#elif CONFIG_ESPESP_MODULE_PCM_STREAM
     return &s_cases[11];
-#elif CONFIG_ESPESP_MODULE_SPEAKER_CLIENT
+#elif CONFIG_ESPESP_MODULE_SPEAKER
     return &s_cases[12];
-#elif CONFIG_ESPESP_MODULE_VOICE_CLIENT
+#elif CONFIG_ESPESP_MODULE_SPEAKER_CLIENT
     return &s_cases[13];
-#elif CONFIG_ESPESP_MODULE_VOICE_CALLBACK
+#elif CONFIG_ESPESP_MODULE_VOICE_CLIENT
     return &s_cases[14];
-#elif CONFIG_ESPESP_MODULE_DISPLAY
+#elif CONFIG_ESPESP_MODULE_VOICE_CALLBACK
     return &s_cases[15];
-#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
+#elif CONFIG_ESPESP_MODULE_DISPLAY
     return &s_cases[16];
-#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
+#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
     return &s_cases[17];
-#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
+#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
     return &s_cases[18];
-#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
+#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
     return &s_cases[19];
-#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
     return &s_cases[20];
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+    return &s_cases[21];
 #else
     return &s_cases[0];
 #endif

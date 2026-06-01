@@ -8,7 +8,7 @@
 - `led_blink`
 - `nvs_counter`
 - `wifi_station`
-- `http_get`
+- `http_client`
 - `adc_reader`
 - `uart_echo`
 - `i2c_scan`

@@ -54,17 +54,22 @@ python -m http_client https://192.168.1.45:443 --token <token> --insecure
 
 ## 源码位置
 
-- HTTPS server：`main/https_server/https_server.c`
+- HTTPS server 入口：`main/https_server/https_server.c`
+- HTTPS server runtime：`main/https_server/https_server_runtime.c`
+- HTTPS server 私有头：`main/https_server/https_server_runtime.h`
+- TLS 凭据读取：`main/https_server/https_server_credentials.c`
+- TLS 凭据头：`main/https_server/https_server_credentials.h`
 - 共享路由：`main/lan_service/lan_service.c`
 - 测试 client：`server/http_client/`
 
 ## 当前模块接口参考
 
-- `https_server_run()`：连接 Wi-Fi，从 NVS 读取 TLS 凭据，启动 HTTPS server，注册 LAN service 路由后常驻运行。
-- `load_https_credentials()`：从 NVS namespace 读取 server certificate 和 private key。
-- `read_nvs_string()`：读取 NVS 字符串并分配缓冲区。
-- `validate_https_credentials()`：检查证书和私钥是否像 PEM 格式。
-- `https_credentials_free()`：释放临时证书和私钥缓冲区。
+- `https_server_run()`：连接 Wi-Fi，启动 HTTPS server，注册 LAN service 路由后常驻运行。
+- `https_server_runtime_prepare()`：校验鉴权配置，构造 HTTPS runtime 默认配置。
+- `https_server_runtime_start()`：加载 TLS 凭据，启动 HTTPS server 并注册共享 LAN service 路由。
+- `https_server_credentials_load()`：从 NVS namespace 读取 server certificate 和 private key。
+- `https_server_credentials_validate()`：检查证书和私钥是否像 PEM 格式。
+- `https_server_credentials_release()`：释放临时证书和私钥缓冲区。
 - `lan_service_register_handlers()`：注册共享 LAN service 路由。
 
 ## 常用接口说明

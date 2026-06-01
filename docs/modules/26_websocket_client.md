@@ -18,6 +18,11 @@
 
 - `main/websocket_client/websocket_client.c`
 - `main/websocket_client/websocket_client.h`
+- `main/websocket_client/websocket_client_context.h`
+- `main/websocket_client/websocket_client_transport.c`
+- `main/websocket_client/websocket_client_transport.h`
+- `main/websocket_client/websocket_client_messages.c`
+- `main/websocket_client/websocket_client_messages.h`
 - `main/websocket_client/README.md`
 
 ## 建议配置项
@@ -41,6 +46,13 @@
 - 周期发送 status JSON。
 - 打印收到的文本帧和二进制帧摘要。
 - 连接失败或断开时打印日志，并依赖 client 自动重连。
+
+## 当前内部结构
+
+- `websocket_client.c`：生命周期编排和主循环。
+- `websocket_client_transport.c`：URI/header 校验、连接状态同步、事件处理。
+- `websocket_client_messages.c`：文本发送、status payload 构造、text/binary chunk 日志摘要。
+- `websocket_client_context.h`：内部共享上下文和事件 bit。
 
 ## 验收标准
 

@@ -37,6 +37,10 @@ ESPESP Menu
 ## 源码位置
 
 - `main/speaker_client/speaker_client.c`
+- `main/speaker_client/speaker_client_audio.c`
+- `main/speaker_client/speaker_client_protocol.c`
+- `main/speaker_client/speaker_client_transport.c`
+- `main/speaker_client/speaker_client_context.h`
 - `main/speaker_client/speaker_client.h`
 - `main/speaker_client/README.md`
 - `server/speaker_server/server.py`
@@ -63,3 +67,4 @@ ESPESP Menu
 - 服务端可把多声道 PCM WAV 下混成单声道，并转换常见 PCM 位宽到 16-bit。
 - 客户端会拒绝采样率、通道数或位宽不匹配的音频，避免错速和失真。
 - WebSocket 分片可能拆开 16-bit 样本，客户端会缓存单个尾字节再与下一片拼接。
+- 客户端会在每轮播放的开头和结尾加入约 5ms 的 de-click ramp，降低硬切到非零样本时的爆破音。

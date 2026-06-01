@@ -8,12 +8,24 @@ idf_component_register(
         "led/led_blink.c"
         "nvs_counter/nvs_counter.c"
         "wifi_station/wifi_station.c"
-        "http_client/http_get.c"
+        "http_client/http_client.c"
+        "http_client/http_request.c"
+        "http_client/http_response_log.c"
+        "https_client/https_client.c"
+        "https_client/https_client_security.c"
         "lan_service/lan_service.c"
         "http_server/http_server.c"
+        "http_server/http_server_runtime.c"
         "https_server/https_server.c"
+        "https_server/https_server_credentials.c"
+        "https_server/https_server_runtime.c"
         "websocket_server/websocket_server.c"
+        "websocket_server/websocket_server_runtime.c"
+        "websocket_server/websocket_server_messages.c"
+        "websocket_server/websocket_server_handlers.c"
         "websocket_client/websocket_client.c"
+        "websocket_client/websocket_client_messages.c"
+        "websocket_client/websocket_client_transport.c"
         "mqtt_client/mqtt_client_app.c"
         "adc_reader/adc_reader.c"
         "uart_echo/uart_echo.c"
@@ -22,6 +34,9 @@ idf_component_register(
         "pcm_stream/pcm_stream.c"
         "speaker/speaker.c"
         "speaker_client/speaker_client.c"
+        "speaker_client/speaker_client_audio.c"
+        "speaker_client/speaker_client_protocol.c"
+        "speaker_client/speaker_client_transport.c"
         "voice_callback/voice_callback.c"
         "voice_callback/voice_callback_aec.c"
         "voice_client/voice_client.c"
@@ -44,6 +59,7 @@ idf_component_register(
         esp_websocket_client
         esp_hw_support
         mqtt
+        mbedtls
         esp_netif
         esp_system
         esp_timer

@@ -34,8 +34,11 @@ config ESPESP_MODULE_NVS_COUNTER
 config ESPESP_MODULE_WIFI_STATION
     bool "wifi_station: connect to Wi-Fi"
 
-config ESPESP_MODULE_HTTP_GET
-    bool "http_get: Wi-Fi + HTTP GET"
+config ESPESP_MODULE_HTTP_CLIENT
+    bool "http_client: Wi-Fi + HTTP GET"
+
+config ESPESP_MODULE_HTTPS_CLIENT
+    bool "https_client: Wi-Fi + HTTPS GET"
 
 config ESPESP_MODULE_ADC_READER
     bool "adc_reader: read ADC1 channel"
@@ -170,6 +173,66 @@ config ESPESP_HTTP_PRINT_LIMIT
     int "Maximum response bytes printed"
     range 0 4096
     default 512
+
+endmenu
+
+menu "HTTPS client module"
+
+config ESPESP_HTTPS_CLIENT_URL
+    string "HTTPS GET URL"
+    default "https://httpbin.org/get"
+    help
+        Use a public HTTPS endpoint together with the ESP certificate bundle,
+        or switch the verify mode to NVS CA for your own self-signed server.
+
+config ESPESP_HTTPS_CLIENT_TIMEOUT_MS
+    int "HTTPS timeout in ms"
+    range 1000 30000
+    default 8000
+
+config ESPESP_HTTPS_CLIENT_PRINT_LIMIT
+    int "Maximum response bytes printed"
+    range 0 4096
+    default 512
+
+choice ESPESP_HTTPS_CLIENT_VERIFY_MODE
+    prompt "TLS verify mode"
+    default ESPESP_HTTPS_CLIENT_VERIFY_BUNDLE if MBEDTLS_CERTIFICATE_BUNDLE
+    default ESPESP_HTTPS_CLIENT_VERIFY_NVS_CA
+    help
+        Select how the HTTPS client verifies the remote server certificate.
+
+config ESPESP_HTTPS_CLIENT_VERIFY_BUNDLE
+    bool "Use ESP x509 certificate bundle"
+    depends on MBEDTLS_CERTIFICATE_BUNDLE
+    help
+        Best for public HTTPS sites signed by common public CAs.
+
+config ESPESP_HTTPS_CLIENT_VERIFY_NVS_CA
+    bool "Load trusted CA cert from NVS"
+    help
+        Best for LAN services or self-signed certificates under your control.
+
+endchoice
+
+config ESPESP_HTTPS_CLIENT_SKIP_COMMON_NAME_CHECK
+    bool "Skip certificate common name check"
+    default n
+    help
+        Enable this only for controlled self-signed tests where the certificate
+        subject does not match the host or IP used in the URL.
+
+if ESPESP_HTTPS_CLIENT_VERIFY_NVS_CA
+
+config ESPESP_HTTPS_CLIENT_CERT_NVS_NAMESPACE
+    string "NVS namespace for trusted CA cert"
+    default "https_cli"
+
+config ESPESP_HTTPS_CLIENT_CERT_NVS_CERT_KEY
+    string "NVS key for trusted CA cert PEM"
+    default "cacert"
+
+endif
 
 endmenu
 
@@ -787,16 +850,16 @@ config ESPESP_VOICE_CALLBACK_PLAYBACK_LIMIT_PERCENT
 
 config ESPESP_VOICE_CALLBACK_AEC_ENABLED
     bool "Enable acoustic echo cancellation (AEC)"
-    default n
+    default y
     help
-        Optional experimental NLMS echo canceller. It is disabled by default
-        because the local callback business path prioritizes low CPU use and
-        hard anti-feedback gating over a heavy adaptive filter.
+        Enable the lightweight NLMS echo canceller. The local monitor feeds
+        the actual speaker PCM back as the echo reference, then uses the gate
+        below only as a residual echo guard.
 
 config ESPESP_VOICE_CALLBACK_AEC_FILTER_LEN
     int "AEC filter length (taps)"
     range 32 256
-    default 64
+    default 128
     depends on ESPESP_VOICE_CALLBACK_AEC_ENABLED
     help
         More taps can model longer speaker-to-microphone echo paths, but use
@@ -805,15 +868,16 @@ config ESPESP_VOICE_CALLBACK_AEC_FILTER_LEN
 config ESPESP_VOICE_CALLBACK_AEC_STEP_SIZE_X256
     int "AEC step size (scaled by 256)"
     range 1 256
-    default 64
+    default 32
     depends on ESPESP_VOICE_CALLBACK_AEC_ENABLED
     help
-        NLMS convergence speed. Keep this conservative on ESP32-class parts.
+        NLMS convergence speed. The default is conservative to avoid musical
+        noise and near-end speech distortion.
 
 config ESPESP_VOICE_CALLBACK_AEC_MAX_DELAY_MS
     int "AEC max acoustic delay in ms"
     range 10 500
-    default 80
+    default 120
     depends on ESPESP_VOICE_CALLBACK_AEC_ENABLED
     help
         Extra reference history kept for acoustic and queue delay.
@@ -821,7 +885,7 @@ config ESPESP_VOICE_CALLBACK_AEC_MAX_DELAY_MS
 config ESPESP_VOICE_CALLBACK_AEC_REFERENCE_DELAY_MS
     int "AEC reference delay in ms"
     range 0 500
-    default 40
+    default 30
     depends on ESPESP_VOICE_CALLBACK_AEC_ENABLED
     help
         Fixed delay used when matching the speaker reference to the microphone
@@ -831,7 +895,7 @@ config ESPESP_VOICE_CALLBACK_AEC_REFERENCE_DELAY_MS
 config ESPESP_VOICE_CALLBACK_NOISE_GATE_AVG_ABS
     int "Residual noise gate average amplitude"
     range 0 5000
-    default 120
+    default 140
     help
         Frames whose average absolute amplitude is below this value are
         replaced with silence before playback.
@@ -839,17 +903,17 @@ config ESPESP_VOICE_CALLBACK_NOISE_GATE_AVG_ABS
 config ESPESP_VOICE_CALLBACK_ECHO_GATE_PERCENT
     int "Residual echo gate percent"
     range 0 1000
-    default 500
+    default 240
     help
-        While the speaker was recently audible, the microphone frame must clear
-        this percentage of the last playback average amplitude. Raising this
-        value rejects more speaker leakage; lowering it makes the monitor more
-        open.
+        While the speaker was recently audible, the AEC-cleaned microphone
+        frame must clear this percentage of the decaying playback average
+        amplitude. Raising this value rejects more speaker leakage; lowering
+        it makes the monitor more open.
 
 config ESPESP_VOICE_CALLBACK_SPEAKER_ACTIVE_TIMEOUT_MS
     int "Speaker active gate window in ms"
     range 0 2000
-    default 700
+    default 350
     help
         How long after audible playback the stricter residual-echo gate stays
         active.
@@ -857,7 +921,7 @@ config ESPESP_VOICE_CALLBACK_SPEAKER_ACTIVE_TIMEOUT_MS
 config ESPESP_VOICE_CALLBACK_GATE_HOLD_MS
     int "Voice gate hold time in ms"
     range 0 1000
-    default 900
+    default 320
     help
         Once a frame is accepted as speech, keep the gate easier to reopen for
         this long. This reduces chopped words while keeping the echo gate active.
@@ -874,7 +938,7 @@ config ESPESP_VOICE_CALLBACK_GATE_RELEASE_PERCENT
 config ESPESP_VOICE_CALLBACK_GATE_RELEASE_MIN_AVG_ABS
     int "Voice gate release minimum average amplitude"
     range 0 1000
-    default 80
+    default 90
     help
         Minimum average amplitude needed while the gate hold window is active.
         This prevents steady microphone floor noise from being played just
@@ -883,27 +947,11 @@ config ESPESP_VOICE_CALLBACK_GATE_RELEASE_MIN_AVG_ABS
 config ESPESP_VOICE_CALLBACK_GATE_HOLD_GAIN_PERCENT
     int "Voice gate hold gain percent"
     range 0 100
-    default 80
+    default 70
     help
         Gain used for weak frames inside the voice hold window. Increasing
         this makes soft syllables and short pauses sound more continuous;
         lowering it rejects more residual speaker leakage.
-
-config ESPESP_VOICE_CALLBACK_GATE_TAIL_MS
-    int "Voice gate tail time in ms"
-    range 0 1000
-    default 350
-    help
-        Extra low-gain tail kept after speech drops below the release
-        threshold. This reduces chopped syllables and abrupt word endings.
-
-config ESPESP_VOICE_CALLBACK_GATE_TAIL_GAIN_PERCENT
-    int "Voice gate tail gain percent"
-    range 0 100
-    default 60
-    help
-        Gain used during the voice gate tail window. Higher values preserve
-        weak word endings; lower values reject more room noise.
 
 config ESPESP_VOICE_CALLBACK_HIGHPASS_FILTER_ENABLED
     bool "Enable microphone high-pass filter"
@@ -915,20 +963,11 @@ config ESPESP_VOICE_CALLBACK_HIGHPASS_FILTER_ENABLED
 config ESPESP_VOICE_CALLBACK_HIGHPASS_ALPHA_Q15
     int "Microphone high-pass alpha Q15"
     range 28000 32760
-    default 31800
+    default 31200
     depends on ESPESP_VOICE_CALLBACK_HIGHPASS_FILTER_ENABLED
     help
         One-pole high-pass coefficient in Q15. Larger values keep more low
         frequency content; smaller values suppress more low-frequency noise.
-
-config ESPESP_VOICE_CALLBACK_NOISE_SUPPRESS_FLOOR_ABS
-    int "Playback noise suppression floor amplitude"
-    range 0 1000
-    default 0
-    help
-        Optional linear attenuation for frames below this average amplitude
-        after they pass the voice gate. The default is 0 because per-sample
-        noise shaping can sound distorted on small I2S speakers.
 
 config ESPESP_VOICE_CALLBACK_TASK_STACK_SIZE
     int "Voice callback task stack size"

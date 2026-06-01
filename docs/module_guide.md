@@ -35,12 +35,13 @@ ESPESP Menu
   -> WiFi
 ```
 
-HTTP、WebSocket 和 MQTT：
+HTTP、HTTPS、WebSocket 和 MQTT：
 
 ```text
 ESPESP Menu
   -> LAN service
   -> HTTP client module
+  -> HTTPS client module
   -> HTTP server module
   -> HTTPS server module
   -> WebSocket server module
@@ -156,7 +157,7 @@ voice_client 连不上或无声：
 voice_callback 啸叫或扬声器声音进麦克风：
 
 - 先降低 `Voice callback module -> Playback volume percent`，例如调到 10 到 15。
-- 默认不要启用 `Enable acoustic echo cancellation (AEC)`；当前本地 callback 先靠低延迟队列和门控阻断回声闭环。
+- 默认启用 `Enable acoustic echo cancellation (AEC)`；本地 callback 先用实际扬声器 PCM 做 AEC，再用门控处理残余回声。
 - 麦克风不要正对扬声器，二者尽量拉开距离，并确认共地。
 - 仍有明显回灌时，增大 `Residual echo gate percent` 或 `Speaker active gate window in ms`。
 - 近端声音也被压住时，降低 `Residual noise gate average amplitude` 或 `Residual echo gate percent`。
@@ -164,23 +165,21 @@ voice_callback 啸叫或扬声器声音进麦克风：
 voice_callback 底噪明显：
 
 - 先确认 `Enable microphone high-pass filter` 已开启。
-- 低频轰鸣明显时，把 `Microphone high-pass alpha Q15` 从 31800 降到 31200 或 31000；声音变薄或发闷破碎则调回更大。
-- 讲话时有沙沙底噪时，把 `Playback noise suppression floor amplitude` 从 0 逐步提到 80 或 120。
-- 没讲话时底噪会被保持窗口放出来时，把 `Voice gate release minimum average amplitude` 提到 220 或 250。
+- 低频轰鸣明显时，把 `Microphone high-pass alpha Q15` 从默认 31200 降到 31000；声音变薄或发闷破碎则调回更大。
+- 没讲话时底噪会被保持窗口放出来时，把 `Voice gate release minimum average amplitude` 从默认 90 提到 120 或 160。
 
 voice_callback 声音失真：
 
 - 先看日志里的 `mic_peak`、`input_gain_q15`、`input_limited` 和 `limited`。
 - `input_limited` 持续增长说明麦克风输入过大，优先把 `Microphone sample right shift bits` 提到 13。
 - `limited` 持续增长说明播放端被削顶，降低 `Playback volume percent` 或 `Playback soft limit percent`。
-- 保持 `Playback noise suppression floor amplitude=0`；仍失真时把高通系数调回 31800 或临时关闭高通。
+- 仍失真时把高通系数调回 31800 或临时关闭高通；如果只在 AEC 开启时失真，降低 `AEC step size` 或 `AEC filter length`。
 
 voice_callback 播放断续：
 
-- 先看日志里的 `underflow`、`muted`、`passed`、`hold`、`tail` 和 `gate_gain_q15`。
+- 先看日志里的 `underflow`、`muted`、`passed`、`hold` 和 `gate_gain_q15`。
 - `underflow` 增长说明播放任务等不到采集帧，先确认 I2S 读写没有 timeout。
-- `muted` 很快增长且 `hold/tail` 很少时，降低 `Residual noise gate average amplitude`。
-- 字尾被切掉时，增大 `Voice gate tail time in ms` 或 `Voice gate tail gain percent`。
+- `muted` 很快增长且 `hold` 很少时，降低 `Residual noise gate average amplitude`。
 - 句中停顿被切掉时，增大 `Voice gate hold time in ms` 或 `Voice gate hold gain percent`。
 
 PCM stream 录不到 WAV：
@@ -206,3 +205,9 @@ HTTPS 启动失败：
 
 - HTTPS server 不把私钥写进源码，需要先把 PEM 格式的证书和私钥写入 NVS。
 - 默认 namespace 是 `https_srv`，key 是 `servercert` 和 `prvtkey`。
+
+HTTPS client 握手失败：
+
+- 公网站点优先使用 `HTTPS client module -> Use ESP x509 certificate bundle`。
+- 自签证书服务优先使用 `Load trusted CA cert from NVS`，并确认 NVS 里保存的是 PEM 格式证书。
+- 只有证书主机名和 URL 不匹配时，才临时开启 `Skip certificate common name check`。

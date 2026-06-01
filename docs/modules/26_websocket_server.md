@@ -18,6 +18,9 @@ WebSocket upgrade 请求，适合浏览器、桌面端或另一个设备主动�
 
 - `main/websocket_server/websocket_server.c`
 - `main/websocket_server/websocket_server.h`
+- `main/websocket_server/websocket_server_runtime.c`
+- `main/websocket_server/websocket_server_handlers.c`
+- `main/websocket_server/websocket_server_messages.c`
 - `main/websocket_server/README.md`
 
 ## 建议配置项

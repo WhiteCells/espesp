@@ -31,6 +31,14 @@ idf.py build flash monitor
 先连接 Wi-Fi，再启动 HTTP server 并注册 WebSocket 升级路由。客户端连上以后，
 模块会周期推送状态 JSON，收到文本或二进制帧时会打印并回显。
 
+## 当前实现拆分
+
+- `websocket_server.c`：模块入口，只负责启动流程编排和周期广播循环。
+- `websocket_server_runtime.c`：运行时配置校验、HTTPD 启动和路由挂载。
+- `websocket_server_handlers.c`：握手鉴权、连接关闭、帧接收与回显。
+- `websocket_server_messages.c`：欢迎消息、状态广播、客户端快照统计。
+- `websocket_server_context.h`：模块内部共享的配置和运行时上下文。
+
 ## 可用能力
 
 - `GET /ws`：WebSocket 升级入口。

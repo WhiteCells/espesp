@@ -21,7 +21,7 @@ Wi-Fi、HTTP、WebSocket、麦克风、扬声器、显示屏等模块还需要�
 | 03 | `led_blink` | GPIO 输出、LED 闪烁、板级引脚配置 | `main/led/led_blink.c` |
 | 04 | `nvs_counter` | NVS 初始化、读写键值、commit | `main/nvs_counter/nvs_counter.c` |
 | 05 | `wifi_station` | STA 模式、事件循环、EventGroup、获取 IP | `main/wifi_station/wifi_station.c` |
-| 06 | `http_get` | Wi-Fi 后发起 HTTP GET、事件回调 | `main/http_client/http_get.c` |
+| 06 | `http_client` | Wi-Fi 后发起 HTTP GET、事件回调 | `main/http_client/` |
 | 07 | `adc_reader` | ADC1 单次采样、衰减、校准电压 | `main/adc_reader/adc_reader.c` |
 | 08 | `uart_echo` | UART 参数、读写、可选自定义引脚 | `main/uart_echo/uart_echo.c` |
 | 09 | `i2c_scan` | I2C master、新驱动、地址扫描 | `main/i2c_scan/i2c_scan.c` |
@@ -34,6 +34,7 @@ Wi-Fi、HTTP、WebSocket、麦克风、扬声器、显示屏等模块还需要�
 | 16 | `pcm_stream` | I2S 麦克风 PCM 通过 UART/UDP 传到电脑并写 WAV | `main/pcm_stream/pcm_stream.c` |
 | 17 | `speaker_client` | 通过 WebSocket 接收电脑端 WAV 音频流并用 I2S 播放 | `main/speaker_client/speaker_client.c` |
 | 19 | `voice_callback` | I2S 麦克风本地全双工回放，带低延迟回声门控 | `main/voice_callback/voice_callback.c` |
+| 20 | `https_client` | Wi-Fi 后发起 HTTPS GET、证书 bundle 或 NVS CA 校验 | `main/https_client/https_client.c` |
 | 26a | `websocket_server` | WebSocket 升级、文本/二进制帧、状态推送、可选鉴权 | `main/websocket_server/websocket_server.c` |
 | 26b | `websocket_client` | 主动连接 WebSocket server、发送状态、接收推送、可选鉴权 | `main/websocket_client/websocket_client.c` |
 

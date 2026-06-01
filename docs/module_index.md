@@ -96,19 +96,21 @@ HTTP 只适合受控局域网调试；需要传输控制命令或敏感状态时
 
 对应模块：
 
-- `http_get`
+- `http_client`
+- `https_client`
 - `http_server`
 - `https_server`
 - `websocket_server`
 - `websocket_client`
 - `speaker_client`
 - `voice_client`
-- 源码：`main/http_client/http_get.c`
+- 源码：`main/http_client/`
+- 源码：`main/https_client/https_client.c`
 - 源码：`main/http_server/http_server.c`
 - 源码：`main/https_server/https_server.c`
 - 源码：`main/websocket_server/websocket_server.c`
 - 源码：`main/websocket_client/websocket_client.c`
-- 源码：`main/speaker_client/speaker_client.c`
+- 源码：`main/speaker_client/`
 - 源码：`main/voice_client/voice_client.c`
 
 ## 8. WebSocket
@@ -124,7 +126,7 @@ WebSocket 适合浏览器和桌面客户端与设备做实时双向通信。它�
 - `voice_client`
 - 源码：`main/websocket_server/websocket_server.c`
 - 源码：`main/websocket_client/websocket_client.c`
-- 源码：`main/speaker_client/speaker_client.c`
+- 源码：`main/speaker_client/`
 - 源码：`main/voice_client/voice_client.c`
 
 ## 9. MQTT Client

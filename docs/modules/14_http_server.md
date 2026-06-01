@@ -43,7 +43,9 @@ python -m http_client http://192.168.1.45:80 --token <token>
 
 ## 源码位置
 
-- HTTP server：`main/http_server/http_server.c`
+- HTTP server 入口：`main/http_server/http_server.c`
+- HTTP server runtime：`main/http_server/http_server_runtime.c`
+- HTTP server 私有头：`main/http_server/http_server_runtime.h`
 - 共享路由：`main/lan_service/lan_service.c`
 - Wi-Fi 复用：`main/wifi_station/wifi_station.c`
 - 测试 client：`server/http_client/`
