@@ -60,9 +60,17 @@ ws://192.168.1.23:8082/audio
 
 连接 Wi-Fi，创建 I2S TX 通道，连接 `speaker_server` WebSocket，接收 PCM 流并写入 I2S。
 
+源码已经按职责拆成：
+
+- `speaker_client.c`：入口和资源生命周期
+- `speaker_client_transport.c`：WebSocket 事件和状态上报
+- `speaker_client_protocol.c`：`audio_start` / `audio_end` 控制协议
+- `speaker_client_audio.c`：PCM/I2S 写入、分片对齐、首尾 de-click
+
 ## 注意事项
 
 - 服务端目前支持 PCM WAV 输入；MP3/FLAC 需要先转成 WAV。
 - WAV 采样率必须和 ESP32 `Speaker module` 采样率一致，默认都是 16000 Hz。
 - 如果听到变速或失真，优先检查服务端日志里的输出格式和 ESP 串口日志里的 `audio_start`。
 - WebSocket binary frame 可能被底层拆分，客户端会缓存奇数字节，避免 16-bit 样本错位。
+- 为了避免开始/结束时的爆破音，客户端会对每个流做约 5ms 的淡入和尾部回零。
