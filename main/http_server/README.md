@@ -41,6 +41,12 @@ python -m http_client http://<esp-ip>:80 --token <token>
 
 HTTP 适合受控局域网调试和非敏感状态查询；涉及控制命令、凭据或敏感状态时应使用 `https_server`。
 
+## 模块内部结构
+
+- `http_server.c`：对外入口，只负责启动编排。
+- `http_server_runtime.c`：模块私有 runtime，负责鉴权配置校验、HTTPD 配置构造、路由注册和启动日志。
+- `http_server_runtime.h`：模块私有 runtime 结构和函数声明。
+
 ## 可用路由
 
 - `GET /`：服务说明。
