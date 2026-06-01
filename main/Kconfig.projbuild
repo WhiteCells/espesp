@@ -58,6 +58,9 @@ config ESPESP_MODULE_SPEAKER
 config ESPESP_MODULE_SPEAKER_CLIENT
     bool "speaker_client: Wi-Fi + WebSocket audio playback"
 
+config ESPESP_MODULE_VOICE_CALLBACK
+    bool "voice_callback: full-duplex microphone monitor with echo guard"
+
 config ESPESP_MODULE_VOICE_CLIENT
     bool "voice_client: microphone -> voice-server -> speaker"
 
@@ -702,6 +705,242 @@ config ESPESP_SPEAKER_CLIENT_TASK_STACK_SIZE
     default 8192
 
 config ESPESP_SPEAKER_CLIENT_I2S_WRITE_TIMEOUT_MS
+    int "I2S write timeout in ms"
+    range 100 5000
+    default 1000
+
+endmenu
+
+menu "Voice callback module"
+
+config ESPESP_VOICE_CALLBACK_SAMPLE_RATE_HZ
+    int "Voice callback sample rate"
+    range 8000 48000
+    default 16000
+    help
+        Shared I2S sample rate for microphone capture and speaker playback.
+        Keeping RX and TX at the same rate avoids resampling in this local
+        full-duplex monitor.
+
+config ESPESP_VOICE_CALLBACK_FRAME_SAMPLES
+    int "Voice callback frame samples"
+    range 64 512
+    default 160
+    help
+        Number of mono samples moved per frame from capture to playback.
+        At 16 kHz, 160 samples is 10 ms.
+
+config ESPESP_VOICE_CALLBACK_QUEUE_LENGTH
+    int "Voice callback frame queue length"
+    range 2 16
+    default 6
+    help
+        Number of preallocated PCM frames between capture and playback.
+        The playback path keeps only a short newest-frame backlog so local
+        monitor latency stays low without dropping every scheduler hiccup.
+
+choice ESPESP_VOICE_CALLBACK_MIC_SLOT
+    prompt "Voice callback microphone I2S slot"
+    default ESPESP_VOICE_CALLBACK_MIC_SLOT_LEFT
+    help
+        Select the I2S slot used by the microphone.
+
+config ESPESP_VOICE_CALLBACK_MIC_SLOT_LEFT
+    bool "Left"
+
+config ESPESP_VOICE_CALLBACK_MIC_SLOT_RIGHT
+    bool "Right"
+
+endchoice
+
+config ESPESP_VOICE_CALLBACK_MIC_SAMPLE_SHIFT_BITS
+    int "Microphone sample right shift bits"
+    range 8 16
+    default 12
+    help
+        Controls how 32-bit I2S microphone samples are scaled down to 16-bit
+        PCM. Lower values are louder and may clip; higher values are quieter.
+
+config ESPESP_VOICE_CALLBACK_MIC_INPUT_LIMIT_PERCENT
+    int "Microphone input limiter percent"
+    range 50 100
+    default 85
+    help
+        Peak headroom kept while converting microphone samples to 16-bit PCM.
+        This applies a linear per-frame gain reduction before saturation, so
+        loud microphone frames do not clip before playback volume is applied.
+
+config ESPESP_VOICE_CALLBACK_PLAYBACK_VOLUME_PERCENT
+    int "Playback volume percent"
+    range 1 100
+    default 15
+    help
+        Digital gain applied to microphone PCM before writing to the speaker.
+        Lower this value if the monitor rings, feeds back, or distorts.
+
+config ESPESP_VOICE_CALLBACK_PLAYBACK_LIMIT_PERCENT
+    int "Playback soft limit percent"
+    range 10 100
+    default 80
+    help
+        Peak limiter applied after playback volume scaling.
+
+config ESPESP_VOICE_CALLBACK_AEC_ENABLED
+    bool "Enable acoustic echo cancellation (AEC)"
+    default n
+    help
+        Optional experimental NLMS echo canceller. It is disabled by default
+        because the local callback business path prioritizes low CPU use and
+        hard anti-feedback gating over a heavy adaptive filter.
+
+config ESPESP_VOICE_CALLBACK_AEC_FILTER_LEN
+    int "AEC filter length (taps)"
+    range 32 256
+    default 64
+    depends on ESPESP_VOICE_CALLBACK_AEC_ENABLED
+    help
+        More taps can model longer speaker-to-microphone echo paths, but use
+        more CPU.
+
+config ESPESP_VOICE_CALLBACK_AEC_STEP_SIZE_X256
+    int "AEC step size (scaled by 256)"
+    range 1 256
+    default 64
+    depends on ESPESP_VOICE_CALLBACK_AEC_ENABLED
+    help
+        NLMS convergence speed. Keep this conservative on ESP32-class parts.
+
+config ESPESP_VOICE_CALLBACK_AEC_MAX_DELAY_MS
+    int "AEC max acoustic delay in ms"
+    range 10 500
+    default 80
+    depends on ESPESP_VOICE_CALLBACK_AEC_ENABLED
+    help
+        Extra reference history kept for acoustic and queue delay.
+
+config ESPESP_VOICE_CALLBACK_AEC_REFERENCE_DELAY_MS
+    int "AEC reference delay in ms"
+    range 0 500
+    default 40
+    depends on ESPESP_VOICE_CALLBACK_AEC_ENABLED
+    help
+        Fixed delay used when matching the speaker reference to the microphone
+        echo. Increase it if the speaker is far from the microphone or if the
+        frame queue is deeper; decrease it if near-end speech sounds gated.
+
+config ESPESP_VOICE_CALLBACK_NOISE_GATE_AVG_ABS
+    int "Residual noise gate average amplitude"
+    range 0 5000
+    default 120
+    help
+        Frames whose average absolute amplitude is below this value are
+        replaced with silence before playback.
+
+config ESPESP_VOICE_CALLBACK_ECHO_GATE_PERCENT
+    int "Residual echo gate percent"
+    range 0 1000
+    default 500
+    help
+        While the speaker was recently audible, the microphone frame must clear
+        this percentage of the last playback average amplitude. Raising this
+        value rejects more speaker leakage; lowering it makes the monitor more
+        open.
+
+config ESPESP_VOICE_CALLBACK_SPEAKER_ACTIVE_TIMEOUT_MS
+    int "Speaker active gate window in ms"
+    range 0 2000
+    default 700
+    help
+        How long after audible playback the stricter residual-echo gate stays
+        active.
+
+config ESPESP_VOICE_CALLBACK_GATE_HOLD_MS
+    int "Voice gate hold time in ms"
+    range 0 1000
+    default 900
+    help
+        Once a frame is accepted as speech, keep the gate easier to reopen for
+        this long. This reduces chopped words while keeping the echo gate active.
+
+config ESPESP_VOICE_CALLBACK_GATE_RELEASE_PERCENT
+    int "Voice gate release threshold percent"
+    range 10 100
+    default 25
+    help
+        Percentage of the normal gate threshold used during the hold window.
+        Lower values make speech more continuous; higher values reject more
+        residual speaker leakage.
+
+config ESPESP_VOICE_CALLBACK_GATE_RELEASE_MIN_AVG_ABS
+    int "Voice gate release minimum average amplitude"
+    range 0 1000
+    default 80
+    help
+        Minimum average amplitude needed while the gate hold window is active.
+        This prevents steady microphone floor noise from being played just
+        because a previous speech frame opened the gate.
+
+config ESPESP_VOICE_CALLBACK_GATE_HOLD_GAIN_PERCENT
+    int "Voice gate hold gain percent"
+    range 0 100
+    default 80
+    help
+        Gain used for weak frames inside the voice hold window. Increasing
+        this makes soft syllables and short pauses sound more continuous;
+        lowering it rejects more residual speaker leakage.
+
+config ESPESP_VOICE_CALLBACK_GATE_TAIL_MS
+    int "Voice gate tail time in ms"
+    range 0 1000
+    default 350
+    help
+        Extra low-gain tail kept after speech drops below the release
+        threshold. This reduces chopped syllables and abrupt word endings.
+
+config ESPESP_VOICE_CALLBACK_GATE_TAIL_GAIN_PERCENT
+    int "Voice gate tail gain percent"
+    range 0 100
+    default 60
+    help
+        Gain used during the voice gate tail window. Higher values preserve
+        weak word endings; lower values reject more room noise.
+
+config ESPESP_VOICE_CALLBACK_HIGHPASS_FILTER_ENABLED
+    bool "Enable microphone high-pass filter"
+    default y
+    help
+        Removes DC offset and low-frequency rumble from the microphone path
+        before gate and playback processing.
+
+config ESPESP_VOICE_CALLBACK_HIGHPASS_ALPHA_Q15
+    int "Microphone high-pass alpha Q15"
+    range 28000 32760
+    default 31800
+    depends on ESPESP_VOICE_CALLBACK_HIGHPASS_FILTER_ENABLED
+    help
+        One-pole high-pass coefficient in Q15. Larger values keep more low
+        frequency content; smaller values suppress more low-frequency noise.
+
+config ESPESP_VOICE_CALLBACK_NOISE_SUPPRESS_FLOOR_ABS
+    int "Playback noise suppression floor amplitude"
+    range 0 1000
+    default 0
+    help
+        Optional linear attenuation for frames below this average amplitude
+        after they pass the voice gate. The default is 0 because per-sample
+        noise shaping can sound distorted on small I2S speakers.
+
+config ESPESP_VOICE_CALLBACK_TASK_STACK_SIZE
+    int "Voice callback task stack size"
+    range 4096 24576
+    default 8192
+
+config ESPESP_VOICE_CALLBACK_I2S_READ_TIMEOUT_MS
+    int "I2S read timeout in ms"
+    range 100 5000
+    default 1000
+
+config ESPESP_VOICE_CALLBACK_I2S_WRITE_TIMEOUT_MS
     int "I2S write timeout in ms"
     range 100 5000
     default 1000

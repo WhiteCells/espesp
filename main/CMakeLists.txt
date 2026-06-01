@@ -22,6 +22,8 @@ idf_component_register(
         "pcm_stream/pcm_stream.c"
         "speaker/speaker.c"
         "speaker_client/speaker_client.c"
+        "voice_callback/voice_callback.c"
+        "voice_callback/voice_callback_aec.c"
         "voice_client/voice_client.c"
         "voice_client/voice_client_aec.c"
         "voice_client/voice_client_audio.c"
