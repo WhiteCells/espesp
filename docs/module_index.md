@@ -75,6 +75,7 @@ NVS 适合保存少量配置，例如 Wi-Fi 配网结果、设备编号、运行
 - `wake_word`：使用 ESP-SR WakeNet 做本地唤醒词检测，可指定已打包进模型分区的 WakeNet 模型。
 - `micro_wake_word`：使用 microWakeWord/TFLite 做本地唤醒词检测，默认内置 Hey Jarvis 示例模型，可替换为自训练模型。
 - `vad`：使用 ESP-SR WebRTC VAD 做本地语音活动检测，只判断语音段起止，不识别具体内容。
+- `vadnet`：使用 ESP-SR VADNet 神经网络模型做本地语音活动检测，需要模型分区。
 - `display`：通过 I2C 写 SSD1306 OLED。
 
 ## 6. Wi-Fi 与事件模型

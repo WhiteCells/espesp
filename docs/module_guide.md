@@ -83,6 +83,7 @@ ESPESP Menu
   -> Voice callback module
   -> Voice client module
   -> VAD module
+  -> VADNet module
   -> Wake word module
   -> microWakeWord module
   -> Display module
@@ -159,6 +160,15 @@ vad 一直 silence 或误触发：
 - 先运行 `microphone` 或 `pcm_stream`，确认麦克风有声音且 I2S slot 选对。
 - 一直 silence 时，把 `VAD module -> VAD aggressiveness` 调低，或把 `Microphone sample right shift bits` 从 12 调到 11。
 - 误触发多时，把 aggressiveness 调高到 3 或 4，或增大 `Minimum speech duration in ms`。
+- 句尾被切掉时，增大 `Minimum silence duration in ms`。
+
+vadnet 启动失败或找不到模型：
+
+- 本模块依赖 ESP-SR VADNet 和 `model` 分区；默认配置面向 ESP32-S3 N16R8。
+- 进入 `ESP Speech Recognition -> Select voice activity detection`，确认选择 `vadnet1 medium`。
+- 启动时报 `no VADNet model found` 时，确认使用 `partitions_16mb_sr.csv` 并执行完整 `idf.py flash`。
+- 一直 silence 时，先跑 `microphone` 或 `pcm_stream`，确认麦克风有声音且 I2S slot 选对。
+- 误触发多时，提高 `VADNet aggressiveness`，或增大 `Minimum speech duration in ms`。
 - 句尾被切掉时，增大 `Minimum silence duration in ms`。
 
 speaker_client 无声或失真：

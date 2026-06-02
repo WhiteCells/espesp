@@ -39,6 +39,7 @@ Wi-Fi、HTTP、WebSocket、麦克风、扬声器、显示屏等模块还需要�
 | 21 | `wake_word` | ESP-SR WakeNet 本地唤醒词检测、可指定已打包模型 | `main/wake_word/wake_word.c` |
 | 22 | `micro_wake_word` | microWakeWord 本地 TFLite 唤醒词检测、适合自定义模型 | `main/micro_wake_word/micro_wake_word.cpp` |
 | 23 | `vad` | ESP-SR WebRTC VAD 本地语音活动检测、输出语音段起止状态 | `main/vad/vad.c` |
+| 24 | `vadnet` | ESP-SR VADNet 神经网络语音活动检测、需要模型分区 | `main/vadnet/vadnet.c` |
 | 26a | `websocket_server` | WebSocket 升级、文本/二进制帧、状态推送、可选鉴权 | `main/websocket_server/websocket_server.c` |
 | 26b | `websocket_client` | 主动连接 WebSocket server、发送状态、接收推送、可选鉴权 | `main/websocket_client/websocket_client.c` |
 

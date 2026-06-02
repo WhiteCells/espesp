@@ -20,6 +20,7 @@
 #include "speaker_client/speaker_client.h"
 #include "system_info/system_info.h"
 #include "vad/vad.h"
+#include "vadnet/vadnet.h"
 #include "voice_callback/voice_callback.h"
 #include "voice_client/voice_client.h"
 #include "wake_word/wake_word.h"
@@ -181,6 +182,14 @@ static const app_case_t s_cases[] = {
         .runs_forever = true,
     },
     {
+        .key = "vadnet",
+        .title = "本地神经网络语音活动检测",
+        .doc_path = "docs/modules/24_vadnet.md",
+        .run = vadnet_run,
+        .needs_wifi = false,
+        .runs_forever = true,
+    },
+    {
         .key = "voice_callback",
         .title = "全双工本地语音回放",
         .doc_path = "docs/modules/19_voice_callback.md",
@@ -285,20 +294,22 @@ const app_case_t *app_registry_selected(void)
     return &s_cases[16];
 #elif CONFIG_ESPESP_MODULE_VAD
     return &s_cases[17];
-#elif CONFIG_ESPESP_MODULE_VOICE_CALLBACK
+#elif CONFIG_ESPESP_MODULE_VADNET
     return &s_cases[18];
-#elif CONFIG_ESPESP_MODULE_DISPLAY
+#elif CONFIG_ESPESP_MODULE_VOICE_CALLBACK
     return &s_cases[19];
-#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
+#elif CONFIG_ESPESP_MODULE_DISPLAY
     return &s_cases[20];
-#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
+#elif CONFIG_ESPESP_MODULE_MQTT_CLIENT
     return &s_cases[21];
-#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
+#elif CONFIG_ESPESP_MODULE_HTTP_SERVER
     return &s_cases[22];
-#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
+#elif CONFIG_ESPESP_MODULE_HTTPS_SERVER
     return &s_cases[23];
-#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_SERVER
     return &s_cases[24];
+#elif CONFIG_ESPESP_MODULE_WEBSOCKET_CLIENT
+    return &s_cases[25];
 #else
     return &s_cases[0];
 #endif

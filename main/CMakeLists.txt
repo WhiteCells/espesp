@@ -46,6 +46,7 @@ idf_component_register(
         "voice_client/voice_client_protocol.c"
         "voice_client/voice_client_transport.c"
         "vad/vad.c"
+        "vadnet/vadnet.c"
         "wake_word/wake_word.c"
         "display/display.c"
     PRIV_REQUIRES
