@@ -82,6 +82,7 @@ ESPESP Menu
   -> Speaker client module
   -> Voice callback module
   -> Voice client module
+  -> VAD module
   -> Wake word module
   -> microWakeWord module
   -> Display module
@@ -152,6 +153,13 @@ micro_wake_word 编译或运行失败：
 - 默认模型是 `Hey Jarvis` 示例；自定义唤醒词需要先训练并替换 TFLite 模型头文件。
 - 启动时报 PSRAM 未启用时，进入 `Component config -> ESP PSRAM` 打开 external SPI RAM。
 - 检测不到时，先看日志里的 `avg_abs/peak`，确认麦克风有声音且 I2S slot 选对。
+
+vad 一直 silence 或误触发：
+
+- 先运行 `microphone` 或 `pcm_stream`，确认麦克风有声音且 I2S slot 选对。
+- 一直 silence 时，把 `VAD module -> VAD aggressiveness` 调低，或把 `Microphone sample right shift bits` 从 12 调到 11。
+- 误触发多时，把 aggressiveness 调高到 3 或 4，或增大 `Minimum speech duration in ms`。
+- 句尾被切掉时，增大 `Minimum silence duration in ms`。
 
 speaker_client 无声或失真：
 

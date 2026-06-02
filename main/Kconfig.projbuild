@@ -73,6 +73,9 @@ config ESPESP_MODULE_WAKE_WORD
 config ESPESP_MODULE_MICRO_WAKE_WORD
     bool "micro_wake_word: local microWakeWord keyword detection"
 
+config ESPESP_MODULE_VAD
+    bool "vad: local voice activity detection"
+
 config ESPESP_MODULE_DISPLAY
     bool "display: write SSD1306 OLED pattern"
 
@@ -1161,6 +1164,95 @@ config ESPESP_VOICE_CLIENT_I2S_WRITE_TIMEOUT_MS
     int "I2S speaker write timeout in ms"
     range 100 5000
     default 1000
+
+endmenu
+
+menu "VAD module"
+
+choice ESPESP_VAD_MODE
+    prompt "VAD aggressiveness"
+    default ESPESP_VAD_MODE_2
+    help
+        Higher modes are more restrictive in reporting speech. Raise the mode
+        when noise causes false triggers; lower it if quiet speech is missed.
+
+config ESPESP_VAD_MODE_0
+    bool "0 normal"
+
+config ESPESP_VAD_MODE_1
+    bool "1 aggressive"
+
+config ESPESP_VAD_MODE_2
+    bool "2 very aggressive"
+
+config ESPESP_VAD_MODE_3
+    bool "3 very very aggressive"
+
+config ESPESP_VAD_MODE_4
+    bool "4 maximum"
+
+endchoice
+
+choice ESPESP_VAD_FRAME_LENGTH
+    prompt "VAD frame length"
+    default ESPESP_VAD_FRAME_20_MS
+    help
+        ESP-SR WebRTC VAD supports 10 ms, 20 ms, and 30 ms frames.
+
+config ESPESP_VAD_FRAME_10_MS
+    bool "10 ms"
+
+config ESPESP_VAD_FRAME_20_MS
+    bool "20 ms"
+
+config ESPESP_VAD_FRAME_30_MS
+    bool "30 ms"
+
+endchoice
+
+config ESPESP_VAD_FRAME_MS
+    int
+    default 10 if ESPESP_VAD_FRAME_10_MS
+    default 20 if ESPESP_VAD_FRAME_20_MS
+    default 30 if ESPESP_VAD_FRAME_30_MS
+
+config ESPESP_VAD_MIN_SPEECH_MS
+    int "Minimum speech duration in ms"
+    range 40 1000
+    default 120
+    help
+        Speech must last at least this long before the module logs a speech
+        state. Increase it to reduce short false triggers.
+
+config ESPESP_VAD_MIN_SILENCE_MS
+    int "Minimum silence duration in ms"
+    range 80 3000
+    default 500
+    help
+        Silence must last at least this long before the module returns to
+        silence state. Increase it if sentence endings are cut too early.
+
+choice ESPESP_VAD_MIC_SLOT
+    prompt "VAD microphone I2S slot"
+    default ESPESP_VAD_MIC_SLOT_LEFT
+    help
+        Select the I2S slot used by the microphone.
+
+config ESPESP_VAD_MIC_SLOT_LEFT
+    bool "Left"
+
+config ESPESP_VAD_MIC_SLOT_RIGHT
+    bool "Right"
+
+endchoice
+
+config ESPESP_VAD_SAMPLE_SHIFT_BITS
+    int "Microphone sample right shift bits"
+    range 8 16
+    default 12
+    help
+        Controls how 32-bit I2S microphone samples are scaled down to 16-bit
+        PCM. Lower values are louder and may clip; higher values are quieter.
 
 endmenu
 
