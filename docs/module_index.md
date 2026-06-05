@@ -71,6 +71,7 @@ NVS 适合保存少量配置，例如 Wi-Fi 配网结果、设备编号、运行
 - `speaker`：通过 I2S 数字功放输出声音。
 - `speaker_client`：通过 WebSocket 接收电脑端 WAV 音频流并用 I2S 播放。
 - `voice_client`：通过 WebSocket 接入 voice-server，上送麦克风 PCM 并播放 TTS PCM。
+- `chat`：通过 VADNet 检测语音段后接入 vchat，支持 TTS 播放打断和 AEC。
 - `voice_callback`：本地全双工麦克风回放，使用低延迟队列和回声门控避免扬声器回灌。
 - `wake_word`：使用 ESP-SR WakeNet 做本地唤醒词检测，可指定已打包进模型分区的 WakeNet 模型。
 - `micro_wake_word`：使用 microWakeWord/TFLite 做本地唤醒词检测，默认内置 Hey Jarvis 示例模型，可替换为自训练模型。
@@ -108,6 +109,7 @@ HTTP 只适合受控局域网调试；需要传输控制命令或敏感状态时
 - `websocket_client`
 - `speaker_client`
 - `voice_client`
+- `chat`
 - 源码：`main/http_client/`
 - 源码：`main/https_client/https_client.c`
 - 源码：`main/http_server/http_server.c`
@@ -116,6 +118,7 @@ HTTP 只适合受控局域网调试；需要传输控制命令或敏感状态时
 - 源码：`main/websocket_client/websocket_client.c`
 - 源码：`main/speaker_client/`
 - 源码：`main/voice_client/voice_client.c`
+- 源码：`main/chat/`
 
 ## 8. WebSocket
 
@@ -128,10 +131,12 @@ WebSocket 适合浏览器和桌面客户端与设备做实时双向通信。它�
 - `websocket_client`
 - `speaker_client`
 - `voice_client`
+- `chat`
 - 源码：`main/websocket_server/websocket_server.c`
 - 源码：`main/websocket_client/websocket_client.c`
 - 源码：`main/speaker_client/`
 - 源码：`main/voice_client/voice_client.c`
+- 源码：`main/chat/`
 
 ## 9. MQTT Client
 

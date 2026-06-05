@@ -48,6 +48,7 @@ ESPESP Menu
   -> WebSocket client module
   -> MQTT client module
   -> Speaker client module
+  -> Chat module
   -> Voice client module
 ```
 
@@ -81,6 +82,7 @@ ESPESP Menu
   -> Speaker module
   -> Speaker client module
   -> Voice callback module
+  -> Chat module
   -> Voice client module
   -> VAD module
   -> VADNet module
@@ -187,6 +189,15 @@ voice_client 连不上或无声：
 - TTS 播放炸麦时，把 `Voice client module -> TTS playback volume percent` 降到 50 或 40；
   观察 `tts_end` 日志里的 `peak_in`、`peak_out` 和 `limited`。
 - 默认启用 AEC，播放时麦克风仍保持上送；如果仍被扬声器干扰，优先调低 TTS 音量并检查 AEC 参数。
+
+chat 连不上、无声或不能打断：
+
+- 先启动 `server/vchat`，并确认电脑和 ESP32 在同一个局域网。
+- ESP32 URI 要填 `ws://电脑局域网IP:8765`，不要填 `127.0.0.1`。
+- `server/vchat` 的 `ASR_SAMPLE_RATE` 要与 VADNet 模型采样率一致，通常是 16000 Hz。
+- 服务端 TTS 默认 24000 Hz；ESP32 端 `Chat module -> Default speaker sample rate` 默认已按这个值设置。
+- 如果本地说话没有触发新一轮，先看日志里的 `vadnet state=speech`，再按 `vadnet` 的排查方式确认麦克风、slot 和 VADNet 模型。
+- 如果说话可以触发但旧回答还在播，检查日志是否出现 `playback interrupted`；没有的话说明 VAD 未进入 speech。
 
 voice_callback 啸叫或扬声器声音进麦克风：
 

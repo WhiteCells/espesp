@@ -67,6 +67,9 @@ config ESPESP_MODULE_VOICE_CALLBACK
 config ESPESP_MODULE_VOICE_CLIENT
     bool "voice_client: microphone -> voice-server -> speaker"
 
+config ESPESP_MODULE_CHAT
+    bool "chat: VADNet barge-in voice chat client"
+
 config ESPESP_MODULE_WAKE_WORD
     bool "wake_word: local WakeNet keyword detection"
 
@@ -993,6 +996,239 @@ config ESPESP_VOICE_CALLBACK_I2S_READ_TIMEOUT_MS
 
 config ESPESP_VOICE_CALLBACK_I2S_WRITE_TIMEOUT_MS
     int "I2S write timeout in ms"
+    range 100 5000
+    default 1000
+
+endmenu
+
+menu "Chat module"
+
+config ESPESP_CHAT_URI
+    string "vchat WebSocket URI"
+    default "ws://192.168.1.23:8765"
+    help
+        Use your computer's LAN IP when testing with server/vchat/.
+        Do not use 127.0.0.1 from the ESP32.
+
+config ESPESP_CHAT_AUTH_TOKEN
+    string "Bearer token"
+    default ""
+    help
+        Leave empty for open endpoints. When set, the client sends
+        Authorization: Bearer <token> during the handshake.
+
+choice ESPESP_CHAT_MIC_SLOT
+    prompt "Chat microphone I2S slot"
+    default ESPESP_CHAT_MIC_SLOT_LEFT
+    help
+        Select the I2S slot used by the microphone. Only one slot is sent as
+        mono PCM.
+
+config ESPESP_CHAT_MIC_SLOT_LEFT
+    bool "Left"
+
+config ESPESP_CHAT_MIC_SLOT_RIGHT
+    bool "Right"
+
+endchoice
+
+config ESPESP_CHAT_MIC_SAMPLE_SHIFT_BITS
+    int "Microphone sample right shift bits"
+    range 8 16
+    default 12
+    help
+        Controls how 32-bit I2S microphone samples are scaled down to 16-bit
+        PCM. Lower values are louder and may clip; higher values are quieter.
+
+config ESPESP_CHAT_PRE_SPEECH_MS
+    int "Pre-speech audio kept before VAD in ms"
+    range 0 500
+    default 160
+    help
+        VADNet needs a short confirmation window. This keeps recent AEC-cleaned
+        microphone PCM and sends it when speech starts, reducing chopped first
+        syllables.
+
+config ESPESP_CHAT_SPK_SAMPLE_RATE_HZ
+    int "Default speaker sample rate"
+    range 8000 48000
+    default 24000
+    help
+        Used before the vchat server sends its ready event and as fallback
+        when tts_start does not include a sample_rate field. vchat defaults
+        to 24000 Hz TTS.
+
+config ESPESP_CHAT_TTS_VOLUME_PERCENT
+    int "TTS playback volume percent"
+    range 10 100
+    default 60
+    help
+        Digital gain applied to server TTS PCM before writing to I2S. Lower
+        this value if playback is too loud, distorted, or clipping.
+
+config ESPESP_CHAT_TTS_LIMIT_PERCENT
+    int "TTS soft limit percent"
+    range 50 100
+    default 90
+    help
+        Peak limiter applied after TTS volume scaling. Values below 100 leave
+        headroom for I2S amplifiers and small speakers.
+
+config ESPESP_CHAT_AEC_ENABLED
+    bool "Enable acoustic echo cancellation (AEC)"
+    default y
+    help
+        Enable full-duplex AEC to remove speaker output from the microphone
+        signal. The AEC reference is the actual PCM written to the speaker.
+
+config ESPESP_CHAT_AEC_FILTER_LEN
+    int "AEC filter length (taps)"
+    range 64 1024
+    default 256
+    depends on ESPESP_CHAT_AEC_ENABLED
+    help
+        More taps can model longer echo paths but use more CPU and memory.
+
+config ESPESP_CHAT_AEC_STEP_SIZE_X256
+    int "AEC step size (scaled by 256)"
+    range 1 256
+    default 128
+    depends on ESPESP_CHAT_AEC_ENABLED
+    help
+        NLMS convergence speed. Higher values converge faster but can become
+        unstable; lower values are safer but slower.
+
+config ESPESP_CHAT_AEC_MAX_DELAY_MS
+    int "AEC max acoustic delay in ms"
+    range 10 500
+    default 200
+    depends on ESPESP_CHAT_AEC_ENABLED
+    help
+        Extra reference history and post-playback tail window for speaker
+        leakage still arriving at the microphone.
+
+config ESPESP_CHAT_VADNET_MODEL
+    string "VADNet model name or substring"
+    default ""
+    help
+        Select a VADNet model already present in the ESP-SR model partition.
+        Leave empty to use the first VADNet model found.
+
+choice ESPESP_CHAT_VADNET_MODE
+    prompt "Chat VADNet aggressiveness"
+    default ESPESP_CHAT_VADNET_MODE_2
+    help
+        Higher modes are more restrictive in reporting speech. Raise the mode
+        when noise causes false triggers; lower it if quiet speech is missed.
+
+config ESPESP_CHAT_VADNET_MODE_0
+    bool "0 normal"
+
+config ESPESP_CHAT_VADNET_MODE_1
+    bool "1 aggressive"
+
+config ESPESP_CHAT_VADNET_MODE_2
+    bool "2 very aggressive"
+
+config ESPESP_CHAT_VADNET_MODE_3
+    bool "3 very very aggressive"
+
+config ESPESP_CHAT_VADNET_MODE_4
+    bool "4 maximum"
+
+endchoice
+
+config ESPESP_CHAT_VADNET_SET_THRESHOLD
+    bool "Set VADNet detection threshold manually"
+    default n
+    help
+        Leave disabled to use the model default threshold. Enable only when
+        tuning false positives and missed speech with known test audio.
+
+config ESPESP_CHAT_VADNET_THRESHOLD
+    float "VADNet detection threshold"
+    range 0.50 0.9999
+    default 0.50
+    depends on ESPESP_CHAT_VADNET_SET_THRESHOLD
+
+config ESPESP_CHAT_VADNET_MIN_SPEECH_MS
+    int "Minimum speech duration in ms"
+    range 40 1000
+    default 120
+    help
+        Speech must last at least this long before the model reports a speech
+        state. Increase it to reduce short false triggers.
+
+config ESPESP_CHAT_VADNET_MIN_SILENCE_MS
+    int "Minimum silence duration in ms"
+    range 80 3000
+    default 800
+    help
+        Non-speech must last at least this long before the module returns to
+        silence state. Increase it if sentence endings are cut too early.
+
+config ESPESP_CHAT_CONNECT_TIMEOUT_MS
+    int "Connect timeout in ms"
+    range 1000 60000
+    default 10000
+
+config ESPESP_CHAT_NETWORK_TIMEOUT_MS
+    int "Network operation timeout in ms"
+    range 1000 30000
+    default 5000
+
+config ESPESP_CHAT_RECONNECT_TIMEOUT_MS
+    int "Reconnect delay in ms"
+    range 1000 60000
+    default 10000
+
+config ESPESP_CHAT_PING_INTERVAL_SEC
+    int "Ping interval in seconds"
+    range 1 300
+    default 10
+
+config ESPESP_CHAT_BUFFER_SIZE
+    int "WebSocket receive buffer size"
+    range 512 16384
+    default 4096
+    help
+        TTS binary frames may be fragmented by this buffer; the client handles
+        fragmentation and keeps 16-bit PCM samples aligned.
+
+config ESPESP_CHAT_WS_TASK_STACK_SIZE
+    int "WebSocket client task stack size"
+    range 6144 32768
+    default 12288
+
+config ESPESP_CHAT_PLAYBACK_TASK_STACK_SIZE
+    int "Playback task stack size"
+    range 4096 24576
+    default 8192
+
+config ESPESP_CHAT_PLAYBACK_QUEUE_LENGTH
+    int "Playback queue length"
+    range 2 32
+    default 10
+    help
+        Number of received TTS chunks that can wait before I2S playback.
+        Barge-in clears this queue immediately.
+
+config ESPESP_CHAT_PLAYBACK_QUEUE_SEND_TIMEOUT_MS
+    int "Playback queue backpressure retry interval in ms"
+    range 0 1000
+    default 20
+    help
+        When the playback queue is full, the WebSocket receive callback waits
+        and retries with this interval. This applies TCP/WebSocket backpressure
+        to fast TTS streams instead of dropping audio chunks.
+
+config ESPESP_CHAT_I2S_READ_TIMEOUT_MS
+    int "I2S microphone read timeout in ms"
+    range 100 5000
+    default 1000
+
+config ESPESP_CHAT_I2S_WRITE_TIMEOUT_MS
+    int "I2S speaker write timeout in ms"
     range 100 5000
     default 1000
 
