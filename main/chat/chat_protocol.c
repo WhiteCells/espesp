@@ -18,6 +18,10 @@ static const char *chat_find_json_value(const char *json, const char *key)
         return NULL;
     }
 
+    /* vchat control frames are small flat JSON objects. This lightweight
+     * extractor keeps the ESP32 side dependency-free; nested protocol data is
+     * logged as opaque text instead of being parsed here.
+     */
     char pattern[64];
     int written = snprintf(pattern, sizeof(pattern), "\"%s\"", key);
     if (written < 0 || written >= (int)sizeof(pattern)) {
@@ -321,7 +325,6 @@ static void chat_handle_tts_start(chat_context_t *ctx, const char *json)
                       CONFIG_ESPESP_CHAT_SPK_SAMPLE_RATE_HZ;
     }
 
-    chat_playback_interrupt(ctx, "new tts_start");
     esp_err_t ret = chat_playback_begin(ctx, sample_rate);
     if (ret != ESP_OK) {
         ESP_LOGE(CHAT_TAG, "start playback failed: %s", esp_err_to_name(ret));

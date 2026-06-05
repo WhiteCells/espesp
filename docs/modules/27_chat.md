@@ -5,7 +5,7 @@
 - ESP32 通过 I2S 麦克风采集音频。
 - 本地 VADNet 只判断语音段起止；检测到 speech 后才把 PCM 推给 `server/vchat/`。
 - 检测到新的本地 speech 时，客户端会清空扬声器播放队列，并向服务端发送 `cancel_response`，用于打断正在播放或生成的回答。
-- 服务端回推 TTS PCM 后，客户端通过 I2S 扬声器播放。
+- 服务端回推 raw TTS PCM 后，客户端通过 I2S 扬声器播放。
 - 播放 PCM 同时作为 AEC reference，麦克风路径在 VAD 和上送前执行 AEC。
 
 ## 使用方式
@@ -42,8 +42,7 @@ ESPESP Menu
 ws://192.168.1.23:8765
 ```
 
-URI 不带 `/ws`。如果使用 `server/vchat/.env`，`VCHAT_HOST` 需要是 `0.0.0.0`，否则服务只监听
-电脑本机回环地址，ESP32 会连不上或被 reset。
+URI 不带 `/ws`。`server/vchat/.env` 当前默认 `VCHAT_HOST=127.0.0.1`，给 ESP32 使用时要改成 `0.0.0.0`，或启动时显式传 `--host 0.0.0.0`。
 
 ## 音频参数
 
@@ -60,8 +59,9 @@ URI 不带 `/ws`。如果使用 `server/vchat/.env`，`VCHAT_HOST` 需要是 `0.
 
 - 默认 sample_rate：`Default speaker sample rate`，默认 24000 Hz。
 - `ready.tts_sample_rate` 或 `tts_start.sample_rate` 会覆盖默认播放采样率。
+- 当前 `server/vchat/main.py` 的 `tts_start` 不带 `sample_rate`，实际播放采样率来自连接后的 `ready.tts_sample_rate`。
 - 音量和限幅由 `TTS playback volume percent`、`TTS soft limit percent` 控制。
-- `server/vchat/.env` 当前可以设置 `TTS_SAMPLE_RATE=48000`，ESP32 会自动切到 48 kHz；如果播放链路压力大，可改为 24000 Hz。
+- `server/vchat/.env` 当前示例 `TTS_SAMPLE_RATE=48000`，ESP32 会自动切到 48 kHz；如果播放链路压力大，可把服务端改为 24000 Hz。
 
 ## 协议流程
 
@@ -82,6 +82,24 @@ server response
   <- binary pcm_s16le chunks
   <- tts_done
 ```
+
+上行事件：
+
+- `audio_start`：携带 `turn_id`、`sample_rate`、`channels=1`、`encoding=pcm_s16le`、`container=raw`。
+- binary frame：raw mono `pcm_s16le`。
+- `audio_end`：结束本轮 ASR 输入。
+- `cancel_response`：请求 `vchat` 取消正在生成或发送的回复。
+
+下行事件：
+
+- `ready`：携带 `asr_sample_rate`、`tts_sample_rate`、`channels`、`sample_width`。
+- `turn_started`、`asr_partial`、`asr_final`、`llm_delta`、`llm_done`、`turn_done`：主要用于日志观察。
+- `tts_start`：声明后续 binary frame 是 TTS PCM。
+- binary frame：raw mono `pcm_s16le`。
+- `tts_done`：把播放结束标记排入队列，播放 task 在前面的 PCM 真正写入 I2S 后再结束本地播放状态。
+- `response_cancelled`、`warning`、`error`：停止本地播放或输出诊断日志。
+
+`server/vchat/` 会按 LLM 输出文本片段多次调用 TTS，所以一次回答可能包含多个 `tts_start -> binary -> tts_done` 小段。客户端在采样率不变时续接播放队列，避免下一段开头打断上一段尾音。
 
 ## 打断行为
 
@@ -110,6 +128,7 @@ server response
 - 播放炸麦：降低 `TTS playback volume percent`，观察日志里的 `peak_in`、`peak_out`、`limited`。
 - 播放时 VAD 被扬声器触发：先降低 TTS 音量，再增大 AEC filter length 或降低 step size。
 - 日志出现 `playback queue full` 时，说明服务端 TTS 推流快于 I2S 实时播放；当前客户端会施加 WebSocket 背压等待播放消费，持续出现时可把 `TTS_SAMPLE_RATE` 降到 24000 Hz。
+- 日志出现 `Connection reset by peer` 时，先确认 `server/vchat` 使用 `--host 0.0.0.0` 启动，且 ESP32 URI 不带 `/ws`。
 
 ## 源码位置
 

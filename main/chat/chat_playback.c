@@ -86,7 +86,7 @@ static esp_err_t chat_write_all_i2s(chat_context_t *ctx, const uint8_t *data, si
                                           data + total_written,
                                           len - total_written,
                                           &bytes_written,
-                                          pdMS_TO_TICKS(CONFIG_ESPESP_CHAT_I2S_WRITE_TIMEOUT_MS));
+                                          CONFIG_ESPESP_CHAT_I2S_WRITE_TIMEOUT_MS);
         if (ret != ESP_OK) {
             return ret;
         }
@@ -176,6 +176,18 @@ static bool chat_playback_generation_active(chat_context_t *ctx, uint32_t genera
            ctx->playback_generation == generation;
 }
 
+static bool chat_playback_can_enqueue(chat_context_t *ctx, uint32_t generation)
+{
+    return ctx != NULL &&
+           ctx->playback_queue != NULL &&
+           ctx->playback_task != NULL &&
+           ctx->playback_streaming &&
+           ctx->playback_pcm &&
+           (!ctx->playback_finishing ||
+            ctx->playback_finishing_segment_id != ctx->playback_segment_id) &&
+           ctx->playback_generation == generation;
+}
+
 static void chat_playback_finish_stream(chat_context_t *ctx, const char *reason)
 {
     if (ctx == NULL) {
@@ -192,6 +204,8 @@ static void chat_playback_finish_stream(chat_context_t *ctx, const char *reason)
 
     ctx->playback_streaming = false;
     ctx->playback_pcm = false;
+    ctx->playback_finishing = false;
+    ctx->playback_finishing_segment_id = 0;
     ctx->binary_payload_active = false;
     ctx->warned_drop_binary = false;
     ctx->has_pending_byte = false;
@@ -222,6 +236,7 @@ static void chat_playback_finish_stream(chat_context_t *ctx, const char *reason)
 static esp_err_t chat_playback_send_queue_item(chat_context_t *ctx,
                                                chat_playback_chunk_t *chunk,
                                                uint32_t generation,
+                                               bool allow_finishing,
                                                const char *full_log)
 {
     TickType_t wait_ticks = pdMS_TO_TICKS(CONFIG_ESPESP_CHAT_PLAYBACK_QUEUE_SEND_TIMEOUT_MS);
@@ -230,7 +245,9 @@ static esp_err_t chat_playback_send_queue_item(chat_context_t *ctx,
     }
 
     int64_t last_log_us = esp_timer_get_time();
-    while (chat_playback_generation_active(ctx, generation)) {
+    while (allow_finishing ?
+           chat_playback_generation_active(ctx, generation) :
+           chat_playback_can_enqueue(ctx, generation)) {
         if (xQueueSend(ctx->playback_queue, chunk, wait_ticks) == pdTRUE) {
             return ESP_OK;
         }
@@ -262,7 +279,7 @@ static esp_err_t chat_playback_write_chunk(chat_context_t *ctx, chat_playback_ch
 
     bool can_play = ctx->playback_streaming && ctx->playback_pcm;
     esp_err_t ret = ESP_OK;
-    if (!can_play) {
+    if (!can_play || chunk->generation != ctx->playback_generation) {
         ctx->playback_dropped_chunks++;
         goto done;
     }
@@ -270,6 +287,7 @@ static esp_err_t chat_playback_write_chunk(chat_context_t *ctx, chat_playback_ch
     uint8_t *cursor = chunk->data;
     size_t remaining = chunk->len;
 
+    /* Binary WebSocket frames may split a 16-bit PCM sample across callbacks. */
     if (ctx->has_pending_byte && remaining > 0) {
         uint8_t sample[2] = { ctx->pending_byte, cursor[0] };
         ctx->has_pending_byte = false;
@@ -324,7 +342,12 @@ static void chat_playback_task(void *arg)
         }
 
         if (chunk.len == CHAT_PLAYBACK_STREAM_END_LEN) {
-            chat_playback_finish_stream(ctx, "tts_done");
+            if (chunk.generation == ctx->playback_generation &&
+                chunk.segment_id == ctx->playback_segment_id &&
+                ctx->playback_finishing &&
+                ctx->playback_finishing_segment_id == chunk.segment_id) {
+                chat_playback_finish_stream(ctx, "tts_done");
+            }
             chat_playback_free_chunk(&chunk);
             continue;
         }
@@ -388,8 +411,28 @@ esp_err_t chat_playback_begin(chat_context_t *ctx, uint32_t sample_rate_hz)
         sample_rate_hz = CONFIG_ESPESP_CHAT_SPK_SAMPLE_RATE_HZ;
     }
 
+    if (ctx->playback_streaming && ctx->playback_pcm &&
+        ctx->output_sample_rate_hz != sample_rate_hz) {
+        chat_playback_interrupt(ctx, "tts_start sample rate change");
+    }
+
     if (ctx->playback_lock != NULL) {
         xSemaphoreTake(ctx->playback_lock, portMAX_DELAY);
+    }
+
+    if (ctx->playback_streaming && ctx->playback_pcm &&
+        ctx->output_sample_rate_hz == sample_rate_hz) {
+        ctx->playback_finishing = false;
+        ctx->playback_finishing_segment_id = 0;
+        ctx->playback_segment_id++;
+        ctx->playback_segment_received_bytes = 0;
+        ctx->binary_payload_active = false;
+        ctx->warned_drop_binary = false;
+        if (ctx->playback_lock != NULL) {
+            xSemaphoreGive(ctx->playback_lock);
+        }
+        ESP_LOGI(CHAT_TAG, "tts playback continue sample_rate=%" PRIu32, sample_rate_hz);
+        return ESP_OK;
     }
 
     esp_err_t ret = chat_audio_set_output_sample_rate(ctx, sample_rate_hz);
@@ -402,11 +445,14 @@ esp_err_t chat_playback_begin(chat_context_t *ctx, uint32_t sample_rate_hz)
 
     ctx->playback_streaming = true;
     ctx->playback_pcm = true;
+    ctx->playback_finishing = false;
+    ctx->playback_finishing_segment_id = 0;
     ctx->binary_payload_active = false;
     ctx->warned_drop_binary = false;
     ctx->has_pending_byte = false;
     ctx->pending_byte = 0;
     ctx->playback_received_bytes = 0;
+    ctx->playback_segment_received_bytes = 0;
     ctx->playback_written_bytes = 0;
     ctx->playback_dropped_chunks = 0;
     ctx->playback_samples = 0;
@@ -417,6 +463,7 @@ esp_err_t chat_playback_begin(chat_context_t *ctx, uint32_t sample_rate_hz)
     ctx->playback_started_us = esp_timer_get_time();
     ctx->last_playback_stats_us = ctx->playback_started_us;
     ctx->playback_generation++;
+    ctx->playback_segment_id++;
 
     if (ctx->aec != NULL) {
         voice_client_aec_set_speaker_rate(ctx->aec, sample_rate_hz);
@@ -435,34 +482,15 @@ esp_err_t chat_playback_begin(chat_context_t *ctx, uint32_t sample_rate_hz)
     return ESP_OK;
 }
 
-static void chat_playback_wait_until_finished(chat_context_t *ctx, uint32_t generation)
-{
-    if (ctx == NULL || ctx->playback_queue == NULL) {
-        return;
-    }
-
-    int64_t last_log_us = esp_timer_get_time();
-    while (chat_playback_generation_active(ctx, generation)) {
-        int64_t now_us = esp_timer_get_time();
-        if (now_us - last_log_us >= CHAT_STATS_PERIOD_US) {
-            last_log_us = now_us;
-            ESP_LOGI(CHAT_TAG,
-                     "waiting for playback finish queued=%u written=%" PRIu64 "/%" PRIu64,
-                     (unsigned int)uxQueueMessagesWaiting(ctx->playback_queue),
-                     ctx->playback_written_bytes,
-                     ctx->playback_received_bytes);
-        }
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
 void chat_playback_end(chat_context_t *ctx, const char *reason)
 {
     if (ctx == NULL) {
         return;
     }
+    (void)reason;
 
     uint32_t generation = ctx->playback_generation;
+    uint32_t segment_id = ctx->playback_segment_id;
     if (!chat_playback_generation_active(ctx, generation)) {
         return;
     }
@@ -471,13 +499,21 @@ void chat_playback_end(chat_context_t *ctx, const char *reason)
         .data = NULL,
         .len = CHAT_PLAYBACK_STREAM_END_LEN,
         .message_done = true,
+        .generation = generation,
+        .segment_id = segment_id,
     };
-    if (chat_playback_send_queue_item(ctx,
-                                      &end,
-                                      generation,
-                                      "playback queue full, waiting to enqueue tts_done") == ESP_OK) {
-        chat_playback_wait_until_finished(ctx, generation);
-    }
+
+    /* Queue the end marker behind already received PCM and return to the
+     * WebSocket event task immediately; the playback task will log final stats
+     * once the queued audio has really reached I2S.
+     */
+    ctx->playback_finishing = true;
+    ctx->playback_finishing_segment_id = segment_id;
+    (void)chat_playback_send_queue_item(ctx,
+                                        &end,
+                                        generation,
+                                        true,
+                                        "playback queue full, waiting to enqueue tts_done");
 }
 
 void chat_playback_interrupt(chat_context_t *ctx, const char *reason)
@@ -501,6 +537,8 @@ void chat_playback_interrupt(chat_context_t *ctx, const char *reason)
 
     ctx->playback_streaming = false;
     ctx->playback_pcm = false;
+    ctx->playback_finishing = false;
+    ctx->playback_finishing_segment_id = 0;
     ctx->binary_payload_active = false;
     ctx->warned_drop_binary = false;
     ctx->has_pending_byte = false;
@@ -546,6 +584,13 @@ esp_err_t chat_playback_enqueue_audio(chat_context_t *ctx,
         return ESP_OK;
     }
 
+    uint32_t generation = ctx->playback_generation;
+    uint32_t segment_id = ctx->playback_segment_id;
+    if (!chat_playback_can_enqueue(ctx, generation)) {
+        ctx->playback_dropped_chunks++;
+        return ESP_OK;
+    }
+
     uint8_t *copy = heap_caps_malloc((size_t)data_len, MALLOC_CAP_8BIT);
     if (copy == NULL) {
         ctx->playback_dropped_chunks++;
@@ -557,14 +602,17 @@ esp_err_t chat_playback_enqueue_audio(chat_context_t *ctx,
         .data = copy,
         .len = (size_t)data_len,
         .message_done = message_done,
+        .generation = generation,
+        .segment_id = segment_id,
     };
 
-    uint32_t generation = ctx->playback_generation;
     if (chat_playback_send_queue_item(ctx,
                                       &chunk,
                                       generation,
+                                      false,
                                       "playback queue full, applying websocket backpressure") == ESP_OK) {
         ctx->playback_received_bytes += (uint64_t)data_len;
+        ctx->playback_segment_received_bytes += (uint64_t)data_len;
         ctx->playback_chunks++;
         return ESP_OK;
     }

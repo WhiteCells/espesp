@@ -193,9 +193,11 @@ voice_client 连不上或无声：
 chat 连不上、无声或不能打断：
 
 - 先启动 `server/vchat`，并确认电脑和 ESP32 在同一个局域网。
+- `server/vchat/.env` 默认 `VCHAT_HOST=127.0.0.1`，给 ESP32 使用时要改成 `0.0.0.0`，或启动时传 `--host 0.0.0.0`。
 - ESP32 URI 要填 `ws://电脑局域网IP:8765`，不要填 `127.0.0.1`。
 - `server/vchat` 的 `ASR_SAMPLE_RATE` 要与 VADNet 模型采样率一致，通常是 16000 Hz。
-- 服务端 TTS 默认 24000 Hz；ESP32 端 `Chat module -> Default speaker sample rate` 默认已按这个值设置。
+- ESP32 会从 `ready.tts_sample_rate` 切换扬声器采样率；`server/vchat/.env` 当前示例是 `TTS_SAMPLE_RATE=48000`。
+- 服务端 TTS 必须返回 raw `pcm_s16le`；如果返回 WAV、MP3、FLAC 或 Ogg，客户端会拒绝播放。
 - 如果本地说话没有触发新一轮，先看日志里的 `vadnet state=speech`，再按 `vadnet` 的排查方式确认麦克风、slot 和 VADNet 模型。
 - 如果说话可以触发但旧回答还在播，检查日志是否出现 `playback interrupted`；没有的话说明 VAD 未进入 speech。
 

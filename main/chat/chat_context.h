@@ -61,6 +61,9 @@ typedef struct {
     uint8_t *data;
     size_t len;
     bool message_done;
+    /* generation changes on barge-in/reset; segment_id changes for each tts_start. */
+    uint32_t generation;
+    uint32_t segment_id;
 } chat_playback_chunk_t;
 
 typedef struct {
@@ -79,11 +82,14 @@ typedef struct {
     volatile bool tx_enabled;
     volatile bool playback_streaming;
     volatile bool playback_pcm;
+    volatile bool playback_finishing;
     volatile bool binary_payload_active;
     volatile bool warned_drop_binary;
     volatile bool session_active;
     volatile bool stop_playback_task;
     volatile uint32_t playback_generation;
+    volatile uint32_t playback_segment_id;
+    volatile uint32_t playback_finishing_segment_id;
     bool has_pending_byte;
     uint8_t pending_byte;
     uint32_t input_sample_rate_hz;
@@ -100,6 +106,7 @@ typedef struct {
     uint64_t playback_dropped_chunks;
     uint64_t playback_samples;
     uint64_t playback_limited_samples;
+    uint64_t playback_segment_received_bytes;
     uint32_t playback_chunks;
     uint32_t playback_input_peak;
     uint32_t playback_output_peak;

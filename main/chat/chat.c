@@ -66,25 +66,33 @@ static void chat_prebuffer_store(int16_t *prebuffer,
     }
 }
 
-static void chat_prebuffer_send(chat_context_t *ctx,
-                                const int16_t *prebuffer,
-                                uint32_t prebuffer_frames,
-                                uint32_t frame_samples,
-                                uint32_t write_index,
-                                uint32_t count)
+static esp_err_t chat_prebuffer_send(chat_context_t *ctx,
+                                     const int16_t *prebuffer,
+                                     uint32_t prebuffer_frames,
+                                     uint32_t frame_samples,
+                                     uint32_t write_index,
+                                     uint32_t count)
 {
     if (ctx == NULL || prebuffer == NULL || prebuffer_frames == 0 ||
         frame_samples == 0 || count == 0 || !ctx->session_active) {
-        return;
+        return ESP_OK;
     }
 
+    /* VADNet reports speech after a confirmation window. Send the circular
+     * prebuffer oldest-first so the ASR still receives the beginning of speech.
+     */
     uint32_t start = (write_index + prebuffer_frames - count) % prebuffer_frames;
     for (uint32_t i = 0; i < count; i++) {
         uint32_t index = (start + i) % prebuffer_frames;
-        (void)chat_send_audio_frame(ctx,
-                                    prebuffer + (size_t)index * frame_samples,
-                                    frame_samples);
+        esp_err_t ret = chat_send_audio_frame(ctx,
+                                              prebuffer + (size_t)index * frame_samples,
+                                              frame_samples);
+        if (ret != ESP_OK) {
+            return ret;
+        }
     }
+
+    return ESP_OK;
 }
 
 static void chat_cleanup(chat_context_t *ctx,
@@ -389,12 +397,15 @@ esp_err_t chat_run(void)
                 if (chat_is_connected(&ctx)) {
                     ret = chat_send_audio_start(&ctx);
                     if (ret == ESP_OK) {
-                        chat_prebuffer_send(&ctx,
-                                            prebuffer,
-                                            prebuffer_frames,
-                                            frame_samples,
-                                            prebuffer_write,
-                                            prebuffer_count);
+                        ret = chat_prebuffer_send(&ctx,
+                                                  prebuffer,
+                                                  prebuffer_frames,
+                                                  frame_samples,
+                                                  prebuffer_write,
+                                                  prebuffer_count);
+                        if (ret != ESP_OK) {
+                            ESP_LOGW(CHAT_TAG, "prebuffer send failed: %s", esp_err_to_name(ret));
+                        }
                     } else {
                         ESP_LOGW(CHAT_TAG, "audio_start failed: %s", esp_err_to_name(ret));
                     }
