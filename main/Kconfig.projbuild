@@ -1035,28 +1035,69 @@ endchoice
 config ESPESP_CHAT_MIC_SAMPLE_SHIFT_BITS
     int "Microphone sample right shift bits"
     range 8 16
-    default 12
+    default 13
     help
         Controls how 32-bit I2S microphone samples are scaled down to 16-bit
         PCM. Lower values are louder and may clip; higher values are quieter.
 
+config ESPESP_CHAT_MIC_INPUT_LIMIT_PERCENT
+    int "Chat microphone input limit percent"
+    range 50 100
+    default 85
+    help
+        Soft input limiter target before VADNet and ASR upload. If speaking
+        sounds distorted or buzzy, keep this below 100 or increase the
+        microphone sample right shift bits.
+
+config ESPESP_CHAT_MIC_HIGHPASS_FILTER_ENABLED
+    bool "Enable chat microphone high-pass filter"
+    default y
+    help
+        Removes DC offset and low-frequency rumble from the chat microphone
+        path before VADNet, barge-in checks, and ASR upload processing.
+
+config ESPESP_CHAT_MIC_HIGHPASS_ALPHA_Q15
+    int "Chat microphone high-pass alpha Q15"
+    range 28000 32760
+    default 31200
+    depends on ESPESP_CHAT_MIC_HIGHPASS_FILTER_ENABLED
+    help
+        One-pole high-pass coefficient in Q15. Larger values keep more low
+        frequency content; smaller values suppress more low-frequency noise.
+
 config ESPESP_CHAT_PRE_SPEECH_MS
     int "Pre-speech audio kept before VAD in ms"
-    range 0 500
-    default 160
+    range 0 800
+    default 500
     help
-        VADNet needs a short confirmation window. This keeps recent AEC-cleaned
-        microphone PCM and sends it when speech starts, reducing chopped first
-        syllables.
+        VADNet and playback barge-in confirmation need a short lookback
+        window. This keeps recent near-end microphone PCM and sends it when
+        speech starts, reducing chopped first syllables.
 
 config ESPESP_CHAT_SPK_SAMPLE_RATE_HZ
     int "Default speaker sample rate"
     range 8000 48000
-    default 24000
+    default 48000
     help
         Used before the vchat server sends its ready event and as fallback
         when tts_start does not include a sample_rate field. vchat defaults
-        to 24000 Hz TTS.
+        to 48000 Hz TTS.
+
+config ESPESP_CHAT_TX_DMA_DESC_NUM
+    int "Chat speaker TX DMA descriptor count"
+    range 4 16
+    default 8
+    help
+        More TX DMA descriptors give the speaker path extra headroom when VAD,
+        AEC, Wi-Fi, and WebSocket processing run at the same time.
+
+config ESPESP_CHAT_TX_DMA_FRAME_NUM
+    int "Chat speaker TX DMA frame count per descriptor"
+    range 128 1024
+    default 256
+    help
+        Larger DMA frames reduce underrun risk during full-duplex speech, at
+        the cost of a little more playback buffering.
 
 config ESPESP_CHAT_TTS_VOLUME_PERCENT
     int "TTS playback volume percent"
@@ -1107,6 +1148,17 @@ config ESPESP_CHAT_AEC_MAX_DELAY_MS
         Extra reference history and post-playback tail window for speaker
         leakage still arriving at the microphone.
 
+config ESPESP_CHAT_AEC_REFERENCE_DELAY_MS
+    int "AEC reference delay in ms"
+    range 0 500
+    default 30
+    depends on ESPESP_CHAT_AEC_ENABLED
+    help
+        Approximate time between writing a TTS sample to the speaker and
+        hearing that sample at the microphone. Correct delay alignment makes
+        AEC-clean energy low for speaker leakage while keeping real near-end
+        speech available for barge-in.
+
 config ESPESP_CHAT_VADNET_MODEL
     string "VADNet model name or substring"
     default ""
@@ -1116,7 +1168,7 @@ config ESPESP_CHAT_VADNET_MODEL
 
 choice ESPESP_CHAT_VADNET_MODE
     prompt "Chat VADNet aggressiveness"
-    default ESPESP_CHAT_VADNET_MODE_2
+    default ESPESP_CHAT_VADNET_MODE_3
     help
         Higher modes are more restrictive in reporting speech. Raise the mode
         when noise causes false triggers; lower it if quiet speech is missed.
@@ -1154,7 +1206,7 @@ config ESPESP_CHAT_VADNET_THRESHOLD
 config ESPESP_CHAT_VADNET_MIN_SPEECH_MS
     int "Minimum speech duration in ms"
     range 40 1000
-    default 120
+    default 180
     help
         Speech must last at least this long before the model reports a speech
         state. Increase it to reduce short false triggers.
@@ -1166,6 +1218,107 @@ config ESPESP_CHAT_VADNET_MIN_SILENCE_MS
     help
         Non-speech must last at least this long before the module returns to
         silence state. Increase it if sentence endings are cut too early.
+
+config ESPESP_CHAT_TURN_END_SILENCE_MS
+    int "Additional end-of-turn silence hold in ms"
+    range 0 2000
+    default 400
+    help
+        After VADNet has already returned to silence, keep the current user
+        turn open for this extra duration before sending audio_end. Increase it
+        if natural within-sentence pauses are still being split into separate
+        turns.
+
+config ESPESP_CHAT_BARGE_IN_MIN_AVG_ABS
+    int "Minimum mic average level for TTS barge-in"
+    range 0 10000
+    default 1400
+    help
+        While TTS is playing, ignore VAD speech starts below this average
+        absolute PCM level. This prevents speaker leakage from cancelling a
+        reply when the user is not actually interrupting.
+
+config ESPESP_CHAT_BARGE_IN_MIN_PEAK
+    int "Minimum mic peak level for TTS barge-in"
+    range 0 32767
+    default 4200
+    help
+        While TTS is playing, ignore VAD speech starts below this peak PCM
+        level. Lower this if quiet real barge-in speech is missed.
+
+config ESPESP_CHAT_BARGE_IN_CLEAN_MIN_AVG_ABS
+    int "Minimum AEC-clean average level for TTS barge-in"
+    range 0 10000
+    default 650
+    help
+        While TTS is playing, the AEC-cleaned microphone must also exceed this
+        average absolute PCM level before local VAD can interrupt playback.
+
+config ESPESP_CHAT_BARGE_IN_CLEAN_MIN_PEAK
+    int "Minimum AEC-clean peak level for TTS barge-in"
+    range 0 32767
+    default 2200
+    help
+        While TTS is playing, the AEC-cleaned microphone must also exceed this
+        peak PCM level before local VAD can interrupt playback.
+
+config ESPESP_CHAT_BARGE_IN_CLEAN_TO_RAW_PERCENT
+    int "Minimum AEC-clean to raw level percent for TTS barge-in"
+    range 0 100
+    default 35
+    help
+        While TTS is playing, require AEC-clean microphone energy to retain at
+        least this percentage of the raw microphone energy. Speaker leakage is
+        mostly removed by AEC, so a very low clean/raw ratio is treated as echo
+        instead of real user barge-in. Set to 0 to disable this ratio gate.
+
+config ESPESP_CHAT_BARGE_IN_CONFIRM_MS
+    int "Additional playback barge-in confirmation in ms"
+    range 0 1000
+    default 96
+    help
+        VADNet already requires minimum speech before it reports speech. This
+        option adds extra confirmation after VADNet speech plus the raw/AEC
+        barge-in gates have passed. Keep this at 0 for immediate interruption
+        once VADNet detects real user speech during playback.
+
+config ESPESP_CHAT_BARGE_IN_WEAK_MIN_AVG_ABS
+    int "Weak barge-in minimum average level"
+    range 0 10000
+    default 60
+    help
+        Lower energy floor for quiet user barge-in during TTS playback. Frames
+        below both this average and the weak peak floor are treated as residual
+        playback leakage even if VADNet briefly reports speech.
+
+config ESPESP_CHAT_BARGE_IN_WEAK_MIN_PEAK
+    int "Weak barge-in minimum peak level"
+    range 0 32767
+    default 300
+    help
+        Lower peak floor for quiet user barge-in during TTS playback. This is
+        intentionally much lower than the strong barge-in peak threshold so
+        quiet speech can interrupt after a longer confirmation window.
+
+config ESPESP_CHAT_BARGE_IN_WEAK_CONFIRM_MS
+    int "Weak playback barge-in confirmation in ms"
+    range 0 1000
+    default 256
+    help
+        Confirmation window for quiet barge-in speech during playback. Strong
+        speech uses the shorter confirmation above; weak speech must persist
+        longer before cancelling TTS, and the pre-speech buffer is sent to ASR
+        when the turn opens.
+
+config ESPESP_CHAT_BARGE_IN_UPLOAD_CLEAN_MS
+    int "AEC-clean upload after barge-in in ms"
+    range 0 1000
+    default 160
+    help
+        After a local playback barge-in opens an ASR turn, send this much
+        AEC-clean microphone audio before switching back to raw near-end mic.
+        This keeps the confirmation audio and immediate TTS tail from polluting
+        recognition while preserving the rest of the user's speech naturally.
 
 config ESPESP_CHAT_CONNECT_TIMEOUT_MS
     int "Connect timeout in ms"
@@ -1204,6 +1357,14 @@ config ESPESP_CHAT_PLAYBACK_TASK_STACK_SIZE
     int "Playback task stack size"
     range 4096 24576
     default 8192
+
+config ESPESP_CHAT_PLAYBACK_TASK_PRIORITY
+    int "Playback task priority"
+    range 5 23
+    default 10
+    help
+        Priority for the task that writes streaming TTS PCM to I2S. Keep it
+        above the chat capture loop to avoid speaker underruns while speaking.
 
 config ESPESP_CHAT_PLAYBACK_QUEUE_LENGTH
     int "Playback queue length"

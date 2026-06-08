@@ -103,6 +103,27 @@ static bool chat_json_get_u32(const char *json, const char *key, uint32_t *out)
     return true;
 }
 
+static bool chat_control_turn_is_stale(chat_context_t *ctx, const char *json, const char *type)
+{
+    uint32_t event_turn_id = 0;
+    if (ctx == NULL || json == NULL || !chat_json_get_u32(json, "turn_id", &event_turn_id)) {
+        return false;
+    }
+
+    uint32_t floor_turn_id = ctx->response_floor_turn_id;
+    if (floor_turn_id == 0 || event_turn_id >= floor_turn_id) {
+        return false;
+    }
+
+    ESP_LOGI(CHAT_TAG,
+             "ignore stale %s turn=%" PRIu32 " floor=%" PRIu32 " current=%" PRIu32,
+             type != NULL ? type : "event",
+             event_turn_id,
+             floor_turn_id,
+             ctx->turn_id);
+    return true;
+}
+
 bool chat_uri_is_valid(const char *uri)
 {
     return uri != NULL &&
@@ -157,7 +178,7 @@ esp_err_t chat_send_audio_start(chat_context_t *ctx)
         return ESP_ERR_INVALID_ARG;
     }
 
-    ctx->turn_id++;
+    uint32_t next_turn_id = ctx->turn_id + 1U;
     char payload[192];
     int written = snprintf(payload,
                            sizeof(payload),
@@ -167,7 +188,7 @@ esp_err_t chat_send_audio_start(chat_context_t *ctx)
                            "\"channels\":%u,"
                            "\"encoding\":\"pcm_s16le\","
                            "\"container\":\"raw\"}",
-                           ctx->turn_id,
+                           next_turn_id,
                            ctx->input_sample_rate_hz,
                            CHAT_CHANNELS);
     if (written < 0 || written >= (int)sizeof(payload)) {
@@ -175,6 +196,8 @@ esp_err_t chat_send_audio_start(chat_context_t *ctx)
     }
 
     ESP_RETURN_ON_ERROR(chat_send_text(ctx, payload), CHAT_TAG, "send audio_start");
+    ctx->turn_id = next_turn_id;
+    ctx->response_floor_turn_id = next_turn_id;
     ctx->session_active = true;
     ctx->mic_sent_bytes = 0;
     ctx->mic_sent_chunks = 0;
@@ -277,6 +300,8 @@ void chat_log_mic_progress(chat_context_t *ctx, bool speech_active, uint32_t avg
     ESP_LOGI(CHAT_TAG,
              "mic state=%s turn=%" PRIu32 " chunks=%" PRIu64 " bytes=%" PRIu64
              " dropped=%" PRIu64 " avg_abs=%" PRIu32 " peak=%" PRIu32
+             " input_peak=%" PRIu32 " pcm_peak=%" PRIu32 " input_gain_q15=%" PRId32
+             " input_limited=%" PRIu64 " input_clipped=%" PRIu64
              " playback=%s free_heap=%" PRIu32,
              speech_active ? "speech" : "silence",
              ctx->turn_id,
@@ -285,6 +310,11 @@ void chat_log_mic_progress(chat_context_t *ctx, bool speech_active, uint32_t avg
              ctx->mic_dropped_chunks,
              avg_abs,
              peak,
+             ctx->mic_input_peak,
+             ctx->mic_pcm_peak,
+             ctx->mic_input_gain_q15,
+             ctx->mic_input_limited_frames,
+             ctx->mic_input_clipped_samples,
              ctx->playback_streaming ? "true" : "false",
              esp_get_free_heap_size());
 }
@@ -316,8 +346,10 @@ static void chat_handle_tts_start(chat_context_t *ctx, const char *json)
 {
     char text[160] = "";
     uint32_t sample_rate = 0;
+    uint32_t turn_id = ctx->turn_id;
     (void)chat_json_get_string(json, "text", text, sizeof(text));
     (void)chat_json_get_u32(json, "sample_rate", &sample_rate);
+    (void)chat_json_get_u32(json, "turn_id", &turn_id);
 
     if (sample_rate == 0) {
         sample_rate = ctx->server_tts_sample_rate_hz != 0 ?
@@ -333,7 +365,7 @@ static void chat_handle_tts_start(chat_context_t *ctx, const char *json)
 
     ESP_LOGI(CHAT_TAG,
              "tts_start turn=%" PRIu32 " sample_rate=%" PRIu32 " text=%s",
-             ctx->turn_id,
+             turn_id,
              sample_rate,
              text[0] != '\0' ? text : "(empty)");
 }
@@ -363,10 +395,19 @@ static void chat_handle_control_text(chat_context_t *ctx, const char *json)
         (void)chat_json_get_string(json, "text", text, sizeof(text));
         ESP_LOGI(CHAT_TAG, "llm_delta: %s", text[0] != '\0' ? text : "(empty)");
     } else if (strcmp(type, "tts_start") == 0) {
+        if (chat_control_turn_is_stale(ctx, json, type)) {
+            return;
+        }
         chat_handle_tts_start(ctx, json);
     } else if (strcmp(type, "tts_done") == 0 || strcmp(type, "tts_end") == 0) {
+        if (chat_control_turn_is_stale(ctx, json, type)) {
+            return;
+        }
         chat_playback_end(ctx, type);
     } else if (strcmp(type, "response_cancelled") == 0) {
+        if (chat_control_turn_is_stale(ctx, json, type)) {
+            return;
+        }
         chat_playback_interrupt(ctx, "server response_cancelled");
     } else if (strcmp(type, "turn_done") == 0) {
         ESP_LOGI(CHAT_TAG, "turn_done");
@@ -377,6 +418,9 @@ static void chat_handle_control_text(chat_context_t *ctx, const char *json)
         (void)chat_json_get_string(json, "message", message, sizeof(message));
         ESP_LOGW(CHAT_TAG, "server warning: %s", message[0] != '\0' ? message : json);
     } else if (strcmp(type, "error") == 0) {
+        if (chat_control_turn_is_stale(ctx, json, type)) {
+            return;
+        }
         char message[200] = "";
         (void)chat_json_get_string(json, "message", message, sizeof(message));
         ESP_LOGE(CHAT_TAG, "server error: %s", message[0] != '\0' ? message : json);
@@ -402,7 +446,22 @@ static void chat_handle_text_event(chat_context_t *ctx, const esp_websocket_even
     }
 
     if (data->data_len <= 0 || data->data_len >= CHAT_CONTROL_MAX) {
-        ESP_LOGW(CHAT_TAG, "control text too large len=%d", data->data_len);
+        char preview[160];
+        size_t preview_len = (size_t)data->data_len;
+        if (preview_len >= sizeof(preview)) {
+            preview_len = sizeof(preview) - 1U;
+        }
+        memcpy(preview, data->data_ptr, preview_len);
+        preview[preview_len] = '\0';
+
+        char type[32] = "";
+        (void)chat_json_get_string(preview, "type", type, sizeof(type));
+        ESP_LOGW(CHAT_TAG,
+                 "control text too large len=%d max=%d type=%s preview=%s",
+                 data->data_len,
+                 CHAT_CONTROL_MAX,
+                 type[0] != '\0' ? type : "(unknown)",
+                 preview);
         return;
     }
 

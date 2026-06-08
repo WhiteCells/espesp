@@ -13,6 +13,17 @@
 #include "model_path.h"
 #include "sdkconfig.h"
 
+#define CHAT_TX_PRIME_MS 8U
+#define CHAT_TX_PRIME_WORK_SAMPLES 256U
+
+#ifndef CONFIG_ESPESP_CHAT_TX_DMA_DESC_NUM
+#define CONFIG_ESPESP_CHAT_TX_DMA_DESC_NUM 8
+#endif
+
+#ifndef CONFIG_ESPESP_CHAT_TX_DMA_FRAME_NUM
+#define CONFIG_ESPESP_CHAT_TX_DMA_FRAME_NUM 256
+#endif
+
 static bool chat_string_contains(const char *haystack, const char *needle)
 {
     return haystack != NULL && needle != NULL && needle[0] != '\0' && strstr(haystack, needle) != NULL;
@@ -162,6 +173,10 @@ esp_err_t chat_audio_create_tx_channel(chat_context_t *ctx)
     }
 
     i2s_chan_config_t channel_config = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_AUTO, I2S_ROLE_MASTER);
+    channel_config.dma_desc_num = CONFIG_ESPESP_CHAT_TX_DMA_DESC_NUM;
+    channel_config.dma_frame_num = CONFIG_ESPESP_CHAT_TX_DMA_FRAME_NUM;
+    channel_config.auto_clear_after_cb = true;
+    channel_config.auto_clear_before_cb = true;
     ESP_RETURN_ON_ERROR(i2s_new_channel(&channel_config, &ctx->tx_channel, NULL),
                         CHAT_TAG,
                         "create I2S TX channel");
@@ -194,6 +209,103 @@ esp_err_t chat_audio_create_tx_channel(chat_context_t *ctx)
     return ESP_OK;
 }
 
+static uint32_t chat_audio_duration_samples(uint32_t sample_rate_hz, uint32_t duration_ms)
+{
+    if (sample_rate_hz == 0) {
+        sample_rate_hz = CONFIG_ESPESP_CHAT_SPK_SAMPLE_RATE_HZ;
+    }
+
+    uint64_t samples = ((uint64_t)sample_rate_hz * duration_ms + 999U) / 1000U;
+    if (samples == 0) {
+        samples = 1;
+    }
+    if (samples > UINT32_MAX) {
+        samples = UINT32_MAX;
+    }
+    return (uint32_t)samples;
+}
+
+esp_err_t chat_audio_prime_tx_channel(chat_context_t *ctx, uint32_t sample_rate_hz)
+{
+    if (ctx == NULL || ctx->tx_channel == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    uint8_t silence[CHAT_TX_PRIME_WORK_SAMPLES * CHAT_SAMPLE_WIDTH_BYTES] = {0};
+    size_t remaining = (size_t)chat_audio_duration_samples(sample_rate_hz, CHAT_TX_PRIME_MS) *
+                       CHAT_SAMPLE_WIDTH_BYTES;
+
+    i2s_chan_info_t info = {0};
+    if (i2s_channel_get_info(ctx->tx_channel, &info) == ESP_OK &&
+        info.total_dma_buf_size > remaining) {
+        remaining = info.total_dma_buf_size;
+    }
+
+    while (remaining > 0) {
+        size_t chunk_bytes = remaining;
+        if (chunk_bytes > sizeof(silence)) {
+            chunk_bytes = sizeof(silence);
+        }
+
+        size_t bytes_loaded = 0;
+        esp_err_t ret = i2s_channel_preload_data(ctx->tx_channel, silence, chunk_bytes, &bytes_loaded);
+        if (ret != ESP_OK) {
+            return ret;
+        }
+        if (bytes_loaded == 0) {
+            break;
+        }
+        remaining -= bytes_loaded;
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t chat_audio_enable_tx(chat_context_t *ctx, uint32_t sample_rate_hz)
+{
+    if (ctx == NULL || ctx->tx_channel == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (ctx->tx_enabled) {
+        return ESP_OK;
+    }
+
+    esp_err_t ret = chat_audio_prime_tx_channel(ctx, sample_rate_hz);
+    if (ret != ESP_OK) {
+        ESP_LOGW(CHAT_TAG, "preload speaker silence failed: %s", esp_err_to_name(ret));
+    }
+
+    ret = i2s_channel_enable(ctx->tx_channel);
+    if (ret != ESP_OK) {
+        ESP_LOGE(CHAT_TAG, "enable speaker channel failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    ctx->tx_enabled = true;
+    return ESP_OK;
+}
+
+esp_err_t chat_audio_disable_tx(chat_context_t *ctx)
+{
+    if (ctx == NULL || ctx->tx_channel == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (!ctx->tx_enabled) {
+        return ESP_OK;
+    }
+
+    esp_err_t ret = i2s_channel_disable(ctx->tx_channel);
+    if (ret != ESP_OK) {
+        ESP_LOGW(CHAT_TAG, "disable speaker channel failed: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    ctx->tx_enabled = false;
+    return ESP_OK;
+}
+
 int16_t chat_audio_convert_sample(int32_t sample)
 {
     int32_t pcm = sample >> CONFIG_ESPESP_CHAT_MIC_SAMPLE_SHIFT_BITS;
@@ -220,35 +332,30 @@ esp_err_t chat_audio_set_output_sample_rate(chat_context_t *ctx, uint32_t sample
              ctx->output_sample_rate_hz,
              sample_rate_hz);
 
-    esp_err_t ret = ESP_OK;
-    if (ctx->tx_enabled) {
-        ret = i2s_channel_disable(ctx->tx_channel);
-        if (ret != ESP_OK) {
-            ESP_LOGE(CHAT_TAG, "disable speaker channel failed: %s", esp_err_to_name(ret));
-            return ret;
-        }
-        ctx->tx_enabled = false;
+    bool was_enabled = ctx->tx_enabled;
+    esp_err_t ret = chat_audio_disable_tx(ctx);
+    if (ret != ESP_OK) {
+        return ret;
     }
 
     i2s_std_clk_config_t clk_cfg = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate_hz);
     ret = i2s_channel_reconfig_std_clock(ctx->tx_channel, &clk_cfg);
     if (ret != ESP_OK) {
         ESP_LOGE(CHAT_TAG, "reconfigure speaker clock failed: %s", esp_err_to_name(ret));
-        (void)i2s_channel_enable(ctx->tx_channel);
-        ctx->tx_enabled = true;
+        if (was_enabled) {
+            (void)chat_audio_enable_tx(ctx, ctx->output_sample_rate_hz);
+        }
         return ret;
     }
 
-    ret = i2s_channel_enable(ctx->tx_channel);
-    if (ret != ESP_OK) {
-        ESP_LOGE(CHAT_TAG, "re-enable speaker channel failed: %s", esp_err_to_name(ret));
-        return ret;
-    }
-
-    ctx->tx_enabled = true;
     ctx->output_sample_rate_hz = sample_rate_hz;
     if (ctx->aec != NULL) {
         voice_client_aec_set_speaker_rate(ctx->aec, sample_rate_hz);
+    }
+    if (was_enabled) {
+        ESP_RETURN_ON_ERROR(chat_audio_enable_tx(ctx, sample_rate_hz),
+                            CHAT_TAG,
+                            "re-enable speaker channel");
     }
     return ESP_OK;
 }

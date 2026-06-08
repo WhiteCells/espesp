@@ -21,7 +21,7 @@
 #define CHAT_ERROR_BIT BIT1
 
 #define CHAT_AUTH_HEADER_MAX 256
-#define CHAT_CONTROL_MAX 512
+#define CHAT_CONTROL_MAX 1024
 #define CHAT_SAMPLE_WIDTH_BYTES 2U
 #define CHAT_CHANNELS 1U
 #define CHAT_STATS_PERIOD_US 1000000LL
@@ -83,6 +83,7 @@ typedef struct {
     volatile bool playback_streaming;
     volatile bool playback_pcm;
     volatile bool playback_finishing;
+    volatile bool playback_abort_requested;
     volatile bool binary_payload_active;
     volatile bool warned_drop_binary;
     volatile bool session_active;
@@ -90,16 +91,26 @@ typedef struct {
     volatile uint32_t playback_generation;
     volatile uint32_t playback_segment_id;
     volatile uint32_t playback_finishing_segment_id;
+    volatile uint32_t response_floor_turn_id;
     bool has_pending_byte;
+    bool playback_has_last_sample;
     uint8_t pending_byte;
+    int16_t playback_last_sample;
     uint32_t input_sample_rate_hz;
     uint32_t output_sample_rate_hz;
     uint32_t server_tts_sample_rate_hz;
     uint32_t vad_frame_samples;
+    uint32_t playback_fade_in_remaining;
+    uint32_t playback_fade_in_total;
+    int32_t highpass_prev_input;
+    int32_t highpass_prev_output;
+    int32_t mic_input_gain_q15;
     uint32_t turn_id;
     uint64_t mic_sent_bytes;
     uint64_t mic_sent_chunks;
     uint64_t mic_dropped_chunks;
+    uint64_t mic_input_limited_frames;
+    uint64_t mic_input_clipped_samples;
     uint64_t speech_segments;
     uint64_t playback_received_bytes;
     uint64_t playback_written_bytes;
@@ -108,6 +119,8 @@ typedef struct {
     uint64_t playback_limited_samples;
     uint64_t playback_segment_received_bytes;
     uint32_t playback_chunks;
+    uint32_t mic_input_peak;
+    uint32_t mic_pcm_peak;
     uint32_t playback_input_peak;
     uint32_t playback_output_peak;
     int64_t speech_started_us;

@@ -5,9 +5,15 @@
 #include <string.h>
 
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #define AEC_TAG "voice_aec"
 #define AEC_EPSILON 1.0f
+#define AEC_YIELD_SAMPLES 64U
+#define AEC_MIN_REF_RMS 8.0f
+#define AEC_DOUBLE_TALK_RATIO_SQ 16.0f
+#define AEC_DOUBLE_TALK_OFFSET_SQ 262144.0f
 
 static uint32_t voice_client_aec_ring_sub(uint32_t index, uint32_t distance, uint32_t size)
 {
@@ -30,6 +36,8 @@ struct voice_client_aec {
     uint32_t step_size_x256;
     uint32_t mic_sample_rate;
     uint32_t spk_sample_rate;
+    uint32_t reference_delay_samples;
+    uint32_t max_delay_samples;
     float mic_per_spk;
     float ref_phase;
     uint32_t tail_remaining;
@@ -74,6 +82,8 @@ voice_client_aec_t *voice_client_aec_create(uint32_t filter_len,
     aec->step_size_x256 = step_size_x256;
     aec->mic_sample_rate = mic_sample_rate;
     aec->spk_sample_rate = spk_sample_rate;
+    aec->reference_delay_samples = 0;
+    aec->max_delay_samples = max_delay_samples;
     aec->mic_per_spk = (float)mic_sample_rate / (float)spk_sample_rate;
     aec->ref_phase = 0.0f;
     aec->tail_remaining = 0;
@@ -85,9 +95,10 @@ voice_client_aec_t *voice_client_aec_create(uint32_t filter_len,
     ESP_LOGI(AEC_TAG,
              "created: filter_len=%" PRIu32 " step=%" PRIu32 "/256 "
              "mic_rate=%" PRIu32 " spk_rate=%" PRIu32 " mic_per_spk=%.3f"
-             " ref_buf=%" PRIu32,
+             " max_delay=%" PRIu32 " samples ref_buf=%" PRIu32,
              filter_len, step_size_x256,
              mic_sample_rate, spk_sample_rate, (double)aec->mic_per_spk,
+             max_delay_samples,
              ref_size);
 
     return aec;
@@ -106,6 +117,36 @@ void voice_client_aec_destroy(voice_client_aec_t *aec)
     free(aec->filter_w);
     free(aec->ref_buf);
     free(aec);
+}
+
+void voice_client_aec_set_reference_delay(voice_client_aec_t *aec, uint32_t reference_delay_ms)
+{
+    if (aec == NULL || aec->mic_sample_rate == 0) {
+        return;
+    }
+
+    uint32_t delay_samples = (aec->mic_sample_rate * reference_delay_ms) / 1000U;
+    if (delay_samples > aec->max_delay_samples) {
+        delay_samples = aec->max_delay_samples;
+    }
+    aec->reference_delay_samples = delay_samples;
+
+    ESP_LOGI(AEC_TAG,
+             "reference delay=%" PRIu32 " ms (%" PRIu32 " samples)",
+             reference_delay_ms,
+             delay_samples);
+}
+
+bool voice_client_aec_has_reference(const voice_client_aec_t *aec, size_t sample_count)
+{
+    if (aec == NULL || !aec->active || sample_count == 0) {
+        return false;
+    }
+
+    uint32_t required_ref_count = aec->filter_len +
+                                  aec->reference_delay_samples +
+                                  (uint32_t)sample_count;
+    return aec->ref_count >= required_ref_count;
 }
 
 esp_err_t voice_client_aec_feed_reference(voice_client_aec_t *aec,
@@ -143,15 +184,27 @@ esp_err_t voice_client_aec_process(voice_client_aec_t *aec,
                                    int16_t *pcm_out,
                                    size_t sample_count)
 {
+    return voice_client_aec_process_with_adaptation(aec, pcm_in, pcm_out, sample_count, true);
+}
+
+esp_err_t voice_client_aec_process_with_adaptation(voice_client_aec_t *aec,
+                                                   const int16_t *pcm_in,
+                                                   int16_t *pcm_out,
+                                                   size_t sample_count,
+                                                   bool adapt)
+{
     if (aec == NULL || pcm_in == NULL || pcm_out == NULL) {
         return ESP_ERR_INVALID_ARG;
+    }
+    if (sample_count == 0) {
+        return ESP_OK;
     }
 
     if (!aec->playback_active && aec->tail_remaining == 0) {
         aec->active = false;
     }
 
-    if (!aec->active || aec->ref_count < aec->filter_len) {
+    if (!voice_client_aec_has_reference(aec, sample_count)) {
         if (pcm_in != pcm_out) {
             memcpy(pcm_out, pcm_in, sample_count * sizeof(int16_t));
         }
@@ -170,10 +223,15 @@ esp_err_t voice_client_aec_process(voice_client_aec_t *aec,
     const uint32_t filter_len = aec->filter_len;
     const uint32_t ref_size = aec->ref_size;
     const uint32_t newest = (aec->ref_write_pos + ref_size - 1) % ref_size;
+    const uint32_t reference_delay = aec->reference_delay_samples;
 
     for (size_t n = 0; n < sample_count; n++) {
+        if (n > 0 && (n % AEC_YIELD_SAMPLES) == 0) {
+            taskYIELD();
+        }
+
         float d = (float)pcm_in[n];
-        uint32_t age = (uint32_t)(sample_count - 1 - n);
+        uint32_t age = reference_delay + (uint32_t)(sample_count - 1 - n);
         if (age >= aec->ref_count) {
             age = aec->ref_count - 1;
         }
@@ -194,11 +252,18 @@ esp_err_t voice_client_aec_process(voice_client_aec_t *aec,
             power += x * x;
         }
 
-        float mu_eff = mu_scale / power;
-
-        for (uint32_t k = 0; k < filter_len; k++) {
-            uint32_t idx = voice_client_aec_ring_sub(current, k, ref_size);
-            aec->filter_w[k] += mu_eff * e * aec->ref_buf[idx];
+        float ref_rms_sq = power / (float)filter_len;
+        float input_power = d * d;
+        bool can_adapt = adapt &&
+                         ref_rms_sq >= (AEC_MIN_REF_RMS * AEC_MIN_REF_RMS) &&
+                         input_power <=
+                         (AEC_DOUBLE_TALK_RATIO_SQ * ref_rms_sq + AEC_DOUBLE_TALK_OFFSET_SQ);
+        if (can_adapt) {
+            float mu_eff = mu_scale / power;
+            for (uint32_t k = 0; k < filter_len; k++) {
+                uint32_t idx = voice_client_aec_ring_sub(current, k, ref_size);
+                aec->filter_w[k] += mu_eff * e * aec->ref_buf[idx];
+            }
         }
 
         int32_t out = (int32_t)e;
